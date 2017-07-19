@@ -32,6 +32,30 @@ if(!file.exists("popData.rds")){
         data.frag <- read.csv(paste("dataset",i,".csv",sep = ""), header = FALSE)
         pop.data <- rbind(pop.data, data.frag)
     }
+    colnames(pop.data) <- c("tripduration",
+                            "starttime",
+                            "stoptime",
+                            "start_station_id",
+                            "start_station_name",
+                            "start_station_latitude",
+                            "start_station_longitude",
+                            "end_station_id",
+                            "end_station_name",
+                            "end_station_latitude",
+                            "end_station_longitude",
+                            "bikeid",
+                            "usertype",
+                            "birth year",
+                            "gender",
+                            "LinearDistance",
+                            "DayOfWeek",
+                            "TimeOfDay",
+                            "HolidayFlag",
+                            "PRCP",
+                            "SNOW",
+                            "TAVE",
+                            "TMAX",
+                            "TMIN")
     saveRDS(pop.data, "popData.rds")
     rm(data.frag)
 } else pop.data <- readRDS("popData.rds")
