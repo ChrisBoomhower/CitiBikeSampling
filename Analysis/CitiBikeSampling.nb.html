@@ -189,15 +189,45 @@ $(document).ready(function () {
 <p>Pulling in data only if RDS file has not already been created.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0d2QoXCJDOlxcXFxVc2Vyc1xcXFxPd25lclxcXFxEb2N1bWVudHNcXFxcR2l0SHViXFxcXE1TRFNfNjM3MFxcXFxDaXRpQmlrZVNhbXBsaW5nXFxcXEFuYWx5c2lzXFxcXERhdGFcIilcbmlmKCFmaWxlLmV4aXN0cyhcInBvcERhdGEucmRzXCIpKXtcbiAgICBwb3AuZGF0YSA8LSBOVUxMXG4gICAgZm9yKGkgaW4gMTpsZW5ndGgobGlzdC5maWxlcygpKSl7XG4gICAgICAgIGRhdGEuZnJhZyA8LSByZWFkLmNzdihwYXN0ZShcImRhdGFzZXRcIixpLFwiLmNzdlwiLHNlcCA9IFwiXCIpLCBoZWFkZXIgPSBGQUxTRSlcbiAgICAgICAgcG9wLmRhdGEgPC0gcmJpbmQocG9wLmRhdGEsIGRhdGEuZnJhZylcbiAgICB9XG4gICAgc2F2ZVJEUyhwb3AuZGF0YSwgXCJwb3BEYXRhLnJkc1wiKVxufSBlbHNlIHBvcC5kYXRhIDwtIHJlYWRSRFMoXCJwb3BEYXRhLnJkc1wiKVxuYGBgIn0= -->
-<pre class="r"><code>setwd(&quot;C:\\Users\\Owner\\Documents\\GitHub\\MSDS_6370\\CitiBikeSampling\\Analysis\\Data&quot;)
-if(!file.exists(&quot;popData.rds&quot;)){
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0d2QoXCJDOlxcXFxVc2Vyc1xcXFxPd25lclxcXFxEb2N1bWVudHNcXFxcR2l0SHViXFxcXE1TRFNfNjM3MFxcXFxDaXRpQmlrZVNhbXBsaW5nXFxcXEFuYWx5c2lzXFxcXERhdGFcIilcbmBgYCJ9 -->
+<pre class="r"><code>setwd(&quot;C:\\Users\\Owner\\Documents\\GitHub\\MSDS_6370\\CitiBikeSampling\\Analysis\\Data&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdhcyBjaGFuZ2VkIHRvIEM6L1VzZXJzL093bmVyL0RvY3VtZW50cy9HaXRIdWIvTVNEU182MzcwL0NpdGlCaWtlU2FtcGxpbmcvQW5hbHlzaXMvRGF0YSBpbnNpZGUgYSBub3RlYm9vayBjaHVuay4gVGhlIHdvcmtpbmcgZGlyZWN0b3J5IHdpbGwgYmUgcmVzZXQgd2hlbiB0aGUgY2h1bmsgaXMgZmluaXNoZWQgcnVubmluZy4gVXNlIHRoZSBrbml0ciByb290LmRpciBvcHRpb24gaW4gdGhlIHNldHVwIGNodW5rIHRvIGNoYW5nZSB0aGUgdGhlIHdvcmtpbmcgZGlyZWN0b3J5IGZvciBub3RlYm9vayBjaHVua3MuXG4ifQ== -->
+<pre><code>The working directory was changed to C:/Users/Owner/Documents/GitHub/MSDS_6370/CitiBikeSampling/Analysis/Data inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the the working directory for notebook chunks.</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaWYoIWZpbGUuZXhpc3RzKFwicG9wRGF0YS5yZHNcIikpe1xuICAgIHBvcC5kYXRhIDwtIE5VTExcbiAgICBmb3IoaSBpbiAxOjIpeyNsZW5ndGgobGlzdC5maWxlcygpKSl7XG4gICAgICAgIGRhdGEuZnJhZyA8LSByZWFkLmNzdihwYXN0ZShcImRhdGFzZXRcIixpLFwiLmNzdlwiLHNlcCA9IFwiXCIpLCBoZWFkZXIgPSBGQUxTRSlcbiAgICAgICAgcG9wLmRhdGEgPC0gcmJpbmQocG9wLmRhdGEsIGRhdGEuZnJhZylcbiAgICB9XG4gICAgY29sbmFtZXMocG9wLmRhdGEpIDwtIGMoXCJ0cmlwZHVyYXRpb25cIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcInN0YXJ0dGltZVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIFwic3RvcHRpbWVcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcInN0YXJ0X3N0YXRpb25faWRcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcInN0YXJ0X3N0YXRpb25fbmFtZVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIFwic3RhcnRfc3RhdGlvbl9sYXRpdHVkZVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIFwic3RhcnRfc3RhdGlvbl9sb25naXR1ZGVcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcImVuZF9zdGF0aW9uX2lkXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgXCJlbmRfc3RhdGlvbl9uYW1lXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgXCJlbmRfc3RhdGlvbl9sYXRpdHVkZVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIFwiZW5kX3N0YXRpb25fbG9uZ2l0dWRlXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgXCJiaWtlaWRcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcInVzZXJ0eXBlXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgXCJiaXJ0aCB5ZWFyXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgXCJnZW5kZXJcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIkxpbmVhckRpc3RhbmNlXCIsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgXCJEYXlPZldlZWtcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIlRpbWVPZkRheVwiLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIFwiSG9saWRheUZsYWdcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIlBSQ1BcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIlNOT1dcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIlRBVkVcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIlRNQVhcIixcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICBcIlRNSU5cIilcbiAgICBzYXZlUkRTKHBvcC5kYXRhLCBcInBvcERhdGEucmRzXCIpXG4gICAgcm0oZGF0YS5mcmFnKVxufSBlbHNlIHBvcC5kYXRhIDwtIHJlYWRSRFMoXCJwb3BEYXRhLnJkc1wiKVxuYGBgIn0= -->
+<pre class="r"><code>if(!file.exists(&quot;popData.rds&quot;)){
     pop.data &lt;- NULL
-    for(i in 1:length(list.files())){
+    for(i in 1:2){#length(list.files())){
         data.frag &lt;- read.csv(paste(&quot;dataset&quot;,i,&quot;.csv&quot;,sep = &quot;&quot;), header = FALSE)
         pop.data &lt;- rbind(pop.data, data.frag)
     }
+    colnames(pop.data) &lt;- c(&quot;tripduration&quot;,
+                            &quot;starttime&quot;,
+                            &quot;stoptime&quot;,
+                            &quot;start_station_id&quot;,
+                            &quot;start_station_name&quot;,
+                            &quot;start_station_latitude&quot;,
+                            &quot;start_station_longitude&quot;,
+                            &quot;end_station_id&quot;,
+                            &quot;end_station_name&quot;,
+                            &quot;end_station_latitude&quot;,
+                            &quot;end_station_longitude&quot;,
+                            &quot;bikeid&quot;,
+                            &quot;usertype&quot;,
+                            &quot;birth year&quot;,
+                            &quot;gender&quot;,
+                            &quot;LinearDistance&quot;,
+                            &quot;DayOfWeek&quot;,
+                            &quot;TimeOfDay&quot;,
+                            &quot;HolidayFlag&quot;,
+                            &quot;PRCP&quot;,
+                            &quot;SNOW&quot;,
+                            &quot;TAVE&quot;,
+                            &quot;TMAX&quot;,
+                            &quot;TMIN&quot;)
     saveRDS(pop.data, &quot;popData.rds&quot;)
+    rm(data.frag)
 } else pop.data &lt;- readRDS(&quot;popData.rds&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
