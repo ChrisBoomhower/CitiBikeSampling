@@ -180,18 +180,6 @@ $(document).ready(function () {
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVxdWlyZShzdXJ2ZXkpXG5gYGAifQ== -->
 <pre class="r"><code>require(survey)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiTG9hZGluZyByZXF1aXJlZCBwYWNrYWdlOiBzdXJ2ZXlcbkxvYWRpbmcgcmVxdWlyZWQgcGFja2FnZTogZ3JpZFxuTG9hZGluZyByZXF1aXJlZCBwYWNrYWdlOiBNYXRyaXhcbkxvYWRpbmcgcmVxdWlyZWQgcGFja2FnZTogc3Vydml2YWxcblxuQXR0YWNoaW5nIHBhY2thZ2U6IOOkvOO4sXN1cnZleeOkvOO4slxuXG5UaGUgZm9sbG93aW5nIG9iamVjdCBpcyBtYXNrZWQgZnJvbSDjpLzjuLFwYWNrYWdlOmdyYXBoaWNz46S847iyOlxuXG4gICAgZG90Y2hhcnRcbiJ9 -->
-<pre><code>Loading required package: survey
-Loading required package: grid
-Loading required package: Matrix
-Loading required package: survival
-
-Attaching package: &lt;U+393C&gt;&lt;U+3E31&gt;survey&lt;U+393C&gt;&lt;U+3E32&gt;
-
-The following object is masked from &lt;U+393C&gt;&lt;U+3E31&gt;package:graphics&lt;U+393C&gt;&lt;U+3E32&gt;:
-
-    dotchart</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>Pulling in data only if RDS file has not already been created.</p>
@@ -252,15 +240,71 @@ The following object is masked from &lt;U+393C&gt;&lt;U+3E31&gt;package:graphics
 </div>
 <div id="cluster-sampling-design" class="section level4">
 <h4>Cluster Sampling Design</h4>
+<p>First, perform SRS to obtain sample clusters.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0LnNlZWQoMTAwKVxucG9wLmRhdGEkZnBjIDwtIG5yb3cocG9wLmRhdGEpXG5zdGF0aW9ucyA8LSBhcy5jaGFyYWN0ZXIoc2FtcGxlKHVuaXF1ZShwb3AuZGF0YSRzdGFydF9zdGF0aW9uX25hbWUpLDEwKSlcbnN0YXRpb25zXG5gYGAifQ== -->
+<pre class="r"><code>set.seed(100)
+pop.data$fpc &lt;- nrow(pop.data)
+stations &lt;- as.character(sample(unique(pop.data$start_station_name),10))
+stations</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSBcIkUgMjUgU3QgJiAxIEF2ZVwiICAgICAgICAgICAgIFwiRSA1MyBTdCAmIE1hZGlzb24gQXZlXCIgICAgICBcbiBbM10gXCJCcm9hZHdheSAmIFcgNTggU3RcIiAgICAgICAgICBcIkFsbGVuIFN0ICYgSGVzdGVyIFN0XCIgICAgICAgXG4gWzVdIFwiRSA1OSBTdCAmIFN1dHRvbiBQbFwiICAgICAgICAgXCJXIDE2IFN0ICYgVGhlIEhpZ2ggTGluZVwiICAgIFxuIFs3XSBcIkxhZmF5ZXR0ZSBBdmUgJiBDbGFzc29uIEF2ZVwiIFwiRSAyMCBTdCAmIDIgQXZlXCIgICAgICAgICAgICBcbiBbOV0gXCJXYXRlciAtIFdoaXRlaGFsbCBQbGF6YVwiICAgICBcIkxleGluZ3RvbiBBdmUgJiBFIDI2IFN0XCIgICAgXG4ifQ== -->
+<pre><code> [1] &quot;E 25 St &amp; 1 Ave&quot;             &quot;E 53 St &amp; Madison Ave&quot;      
+ [3] &quot;Broadway &amp; W 58 St&quot;          &quot;Allen St &amp; Hester St&quot;       
+ [5] &quot;E 59 St &amp; Sutton Pl&quot;         &quot;W 16 St &amp; The High Line&quot;    
+ [7] &quot;Lafayette Ave &amp; Classon Ave&quot; &quot;E 20 St &amp; 2 Ave&quot;            
+ [9] &quot;Water - Whitehall Plaza&quot;     &quot;Lexington Ave &amp; E 26 St&quot;    </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p><br> Next, create complex design object for one-stage cluster sampling.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2x1czEgPC0gc3Vic2V0KHBvcC5kYXRhLCBzdGFydF9zdGF0aW9uX25hbWUgJWluJSBzdGF0aW9ucylcbmNsdXMxJGZwYyA8LSAzMzBcbmNsdXMxLmRlc2lnbiA8LSBzdnlkZXNpZ24oaWQgPSB+c3RhcnRfc3RhdGlvbl9uYW1lLCBkYXRhID0gY2x1czEsIGZwYyA9IH5mcGMpXG5zdW1tYXJ5KGNsdXMxLmRlc2lnbilcbmBgYCJ9 -->
+<pre class="r"><code>clus1 &lt;- subset(pop.data, start_station_name %in% stations)
+clus1$fpc &lt;- 330
+clus1.design &lt;- svydesign(id = ~start_station_name, data = clus1, fpc = ~fpc)
+summary(clus1.design)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiMSAtIGxldmVsIENsdXN0ZXIgU2FtcGxpbmcgZGVzaWduXG5XaXRoICgxMCkgY2x1c3RlcnMuXG5zdnlkZXNpZ24oaWQgPSB+c3RhcnRfc3RhdGlvbl9uYW1lLCBkYXRhID0gY2x1czEsIGZwYyA9IH5mcGMpXG5Qcm9iYWJpbGl0aWVzOlxuICAgTWluLiAxc3QgUXUuICBNZWRpYW4gICAgTWVhbiAzcmQgUXUuICAgIE1heC4gXG4gMC4wMzAzICAwLjAzMDMgIDAuMDMwMyAgMC4wMzAzICAwLjAzMDMgIDAuMDMwMyBcblBvcHVsYXRpb24gc2l6ZSAoUFNVcyk6IDMzMCBcbkRhdGEgdmFyaWFibGVzOlxuIFsxXSBcInRyaXBkdXJhdGlvblwiICAgICAgICAgICAgXCJzdGFydHRpbWVcIiAgICAgICAgICAgICAgIFwic3RvcHRpbWVcIiAgICAgICAgICAgICAgIFxuIFs0XSBcInN0YXJ0X3N0YXRpb25faWRcIiAgICAgICAgXCJzdGFydF9zdGF0aW9uX25hbWVcIiAgICAgIFwic3RhcnRfc3RhdGlvbl9sYXRpdHVkZVwiIFxuIFs3XSBcInN0YXJ0X3N0YXRpb25fbG9uZ2l0dWRlXCIgXCJlbmRfc3RhdGlvbl9pZFwiICAgICAgICAgIFwiZW5kX3N0YXRpb25fbmFtZVwiICAgICAgIFxuWzEwXSBcImVuZF9zdGF0aW9uX2xhdGl0dWRlXCIgICAgXCJlbmRfc3RhdGlvbl9sb25naXR1ZGVcIiAgIFwiYmlrZWlkXCIgICAgICAgICAgICAgICAgIFxuWzEzXSBcInVzZXJ0eXBlXCIgICAgICAgICAgICAgICAgXCJiaXJ0aCB5ZWFyXCIgICAgICAgICAgICAgIFwiZ2VuZGVyXCIgICAgICAgICAgICAgICAgIFxuWzE2XSBcIkxpbmVhckRpc3RhbmNlXCIgICAgICAgICAgXCJEYXlPZldlZWtcIiAgICAgICAgICAgICAgIFwiVGltZU9mRGF5XCIgICAgICAgICAgICAgIFxuWzE5XSBcIkhvbGlkYXlGbGFnXCIgICAgICAgICAgICAgXCJQUkNQXCIgICAgICAgICAgICAgICAgICAgIFwiU05PV1wiICAgICAgICAgICAgICAgICAgIFxuWzIyXSBcIlRBVkVcIiAgICAgICAgICAgICAgICAgICAgXCJUTUFYXCIgICAgICAgICAgICAgICAgICAgIFwiVE1JTlwiICAgICAgICAgICAgICAgICAgIFxuWzI1XSBcImZwY1wiICAgICAgICAgICAgICAgICAgICBcbiJ9 -->
+<pre><code>1 - level Cluster Sampling design
+With (10) clusters.
+svydesign(id = ~start_station_name, data = clus1, fpc = ~fpc)
+Probabilities:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.0303  0.0303  0.0303  0.0303  0.0303  0.0303 
+Population size (PSUs): 330 
+Data variables:
+ [1] &quot;tripduration&quot;            &quot;starttime&quot;               &quot;stoptime&quot;               
+ [4] &quot;start_station_id&quot;        &quot;start_station_name&quot;      &quot;start_station_latitude&quot; 
+ [7] &quot;start_station_longitude&quot; &quot;end_station_id&quot;          &quot;end_station_name&quot;       
+[10] &quot;end_station_latitude&quot;    &quot;end_station_longitude&quot;   &quot;bikeid&quot;                 
+[13] &quot;usertype&quot;                &quot;birth year&quot;              &quot;gender&quot;                 
+[16] &quot;LinearDistance&quot;          &quot;DayOfWeek&quot;               &quot;TimeOfDay&quot;              
+[19] &quot;HolidayFlag&quot;             &quot;PRCP&quot;                    &quot;SNOW&quot;                   
+[22] &quot;TAVE&quot;                    &quot;TMAX&quot;                    &quot;TMIN&quot;                   
+[25] &quot;fpc&quot;                    </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p><br> Begin tripduration mean estimation <em>(still need to account for weights, etc.)</em></p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3Z5bWVhbih+dHJpcGR1cmF0aW9uLCBkZXNpZ24gPSBjbHVzMS5kZXNpZ24pXG5gYGAifQ== -->
+<pre class="r"><code>svymean(~tripduration, design = clus1.design)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgbWVhbiAgICAgU0VcbnRyaXBkdXJhdGlvbiA5MjIuMDkgNjQuMDYyXG4ifQ== -->
+<pre><code>               mean     SE
+tripduration 922.09 64.062</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIk1TRFMgNjM3MCBTYW1wbGluZyBEZXNpZ24iDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQojIyMgTG9hZCB0aGUgZGF0YQ0KDQpMb2FkIG5lY2Vzc2FyeSBsaWJyYXJpZXMNCg0KYGBge3J9DQpyZXF1aXJlKHN1cnZleSkNCmBgYA0KDQpQdWxsaW5nIGluIGRhdGEgb25seSBpZiBSRFMgZmlsZSBoYXMgbm90IGFscmVhZHkgYmVlbiBjcmVhdGVkLg0KDQpgYGB7cn0NCnNldHdkKCJDOlxcVXNlcnNcXE93bmVyXFxEb2N1bWVudHNcXEdpdEh1YlxcTVNEU182MzcwXFxDaXRpQmlrZVNhbXBsaW5nXFxBbmFseXNpc1xcRGF0YSIpDQppZighZmlsZS5leGlzdHMoInBvcERhdGEucmRzIikpew0KICAgIHBvcC5kYXRhIDwtIE5VTEwNCiAgICBmb3IoaSBpbiAxOmxlbmd0aChsaXN0LmZpbGVzKCkpKXsNCiAgICAgICAgZGF0YS5mcmFnIDwtIHJlYWQuY3N2KHBhc3RlKCJkYXRhc2V0IixpLCIuY3N2IixzZXAgPSAiIiksIGhlYWRlciA9IEZBTFNFKQ0KICAgICAgICBwb3AuZGF0YSA8LSByYmluZChwb3AuZGF0YSwgZGF0YS5mcmFnKQ0KICAgIH0NCiAgICBjb2xuYW1lcyhwb3AuZGF0YSkgPC0gYygidHJpcGR1cmF0aW9uIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RhcnR0aW1lIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RvcHRpbWUiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJzdGFydF9zdGF0aW9uX2lkIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RhcnRfc3RhdGlvbl9uYW1lIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RhcnRfc3RhdGlvbl9sYXRpdHVkZSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgInN0YXJ0X3N0YXRpb25fbG9uZ2l0dWRlIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZW5kX3N0YXRpb25faWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJlbmRfc3RhdGlvbl9uYW1lIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZW5kX3N0YXRpb25fbGF0aXR1ZGUiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJlbmRfc3RhdGlvbl9sb25naXR1ZGUiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJiaWtlaWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJ1c2VydHlwZSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgImJpcnRoIHllYXIiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJnZW5kZXIiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJMaW5lYXJEaXN0YW5jZSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkRheU9mV2VlayIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlRpbWVPZkRheSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkhvbGlkYXlGbGFnIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiUFJDUCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlNOT1ciLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJUQVZFIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiVE1BWCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlRNSU4iKQ0KICAgIHNhdmVSRFMocG9wLmRhdGEsICJwb3BEYXRhLnJkcyIpDQogICAgcm0oZGF0YS5mcmFnKQ0KfSBlbHNlIHBvcC5kYXRhIDwtIHJlYWRSRFMoInBvcERhdGEucmRzIikNCmBgYA0KDQojIyMgVGFzayAxDQojIyMjIFN0cmF0aWZpZWQgU2FtcGxpbmcgKFByb3BvcnRpb25hbCBBbGxvY2F0aW9uKQ0KDQpgYGB7cn0NCg0KYGBgDQoNCiMjIyMgQ2x1c3RlciBTYW1wbGluZyBEZXNpZ24NCg0KYGBge3J9DQoNCmBgYA0KDQo=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIk1TRFMgNjM3MCBTYW1wbGluZyBEZXNpZ24iDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQojIyMgTG9hZCB0aGUgZGF0YQ0KDQpMb2FkIG5lY2Vzc2FyeSBsaWJyYXJpZXMNCg0KYGBge3J9DQpyZXF1aXJlKHN1cnZleSkNCmBgYA0KDQpQdWxsaW5nIGluIGRhdGEgb25seSBpZiBSRFMgZmlsZSBoYXMgbm90IGFscmVhZHkgYmVlbiBjcmVhdGVkLg0KDQpgYGB7cn0NCnNldHdkKCJDOlxcVXNlcnNcXE93bmVyXFxEb2N1bWVudHNcXEdpdEh1YlxcTVNEU182MzcwXFxDaXRpQmlrZVNhbXBsaW5nXFxBbmFseXNpc1xcRGF0YSIpDQppZighZmlsZS5leGlzdHMoInBvcERhdGEucmRzIikpew0KICAgIHBvcC5kYXRhIDwtIE5VTEwNCiAgICBmb3IoaSBpbiAxOmxlbmd0aChsaXN0LmZpbGVzKCkpKXsNCiAgICAgICAgZGF0YS5mcmFnIDwtIHJlYWQuY3N2KHBhc3RlKCJkYXRhc2V0IixpLCIuY3N2IixzZXAgPSAiIiksIGhlYWRlciA9IEZBTFNFKQ0KICAgICAgICBwb3AuZGF0YSA8LSByYmluZChwb3AuZGF0YSwgZGF0YS5mcmFnKQ0KICAgIH0NCiAgICBjb2xuYW1lcyhwb3AuZGF0YSkgPC0gYygidHJpcGR1cmF0aW9uIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RhcnR0aW1lIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RvcHRpbWUiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJzdGFydF9zdGF0aW9uX2lkIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RhcnRfc3RhdGlvbl9uYW1lIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAic3RhcnRfc3RhdGlvbl9sYXRpdHVkZSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgInN0YXJ0X3N0YXRpb25fbG9uZ2l0dWRlIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZW5kX3N0YXRpb25faWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJlbmRfc3RhdGlvbl9uYW1lIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiZW5kX3N0YXRpb25fbGF0aXR1ZGUiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJlbmRfc3RhdGlvbl9sb25naXR1ZGUiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJiaWtlaWQiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJ1c2VydHlwZSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgImJpcnRoIHllYXIiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJnZW5kZXIiLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJMaW5lYXJEaXN0YW5jZSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkRheU9mV2VlayIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlRpbWVPZkRheSIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIkhvbGlkYXlGbGFnIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiUFJDUCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlNOT1ciLA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICJUQVZFIiwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAiVE1BWCIsDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgIlRNSU4iKQ0KICAgIHNhdmVSRFMocG9wLmRhdGEsICJwb3BEYXRhLnJkcyIpDQogICAgcm0oZGF0YS5mcmFnKQ0KfSBlbHNlIHBvcC5kYXRhIDwtIHJlYWRSRFMoInBvcERhdGEucmRzIikNCmBgYA0KDQojIyMgVGFzayAxDQojIyMjIFN0cmF0aWZpZWQgU2FtcGxpbmcgKFByb3BvcnRpb25hbCBBbGxvY2F0aW9uKQ0KDQpgYGB7cn0NCg0KYGBgDQojIyMjIENsdXN0ZXIgU2FtcGxpbmcgRGVzaWduDQpGaXJzdCwgcGVyZm9ybSBTUlMgdG8gb2J0YWluIHNhbXBsZSBjbHVzdGVycy4NCmBgYHtyfQ0Kc2V0LnNlZWQoMTAwKQ0KDQpwb3AuZGF0YSRmcGMgPC0gbnJvdyhwb3AuZGF0YSkNCnN0YXRpb25zIDwtIGFzLmNoYXJhY3RlcihzYW1wbGUodW5pcXVlKHBvcC5kYXRhJHN0YXJ0X3N0YXRpb25fbmFtZSksMTApKQ0Kc3RhdGlvbnMNCmBgYA0KPGJyPg0KTmV4dCwgY3JlYXRlIGNvbXBsZXggZGVzaWduIG9iamVjdCBmb3Igb25lLXN0YWdlIGNsdXN0ZXIgc2FtcGxpbmcuDQpgYGB7cn0NCmNsdXMxIDwtIHN1YnNldChwb3AuZGF0YSwgc3RhcnRfc3RhdGlvbl9uYW1lICVpbiUgc3RhdGlvbnMpDQpjbHVzMSRmcGMgPC0gMzMwDQoNCmNsdXMxLmRlc2lnbiA8LSBzdnlkZXNpZ24oaWQgPSB+c3RhcnRfc3RhdGlvbl9uYW1lLCBkYXRhID0gY2x1czEsIGZwYyA9IH5mcGMpDQpzdW1tYXJ5KGNsdXMxLmRlc2lnbikNCmBgYA0KPGJyPg0KQmVnaW4gdHJpcGR1cmF0aW9uIG1lYW4gZXN0aW1hdGlvbiAqKHN0aWxsIG5lZWQgdG8gYWNjb3VudCBmb3Igd2VpZ2h0cywgZXRjLikqDQpgYGB7cn0NCnN2eW1lYW4ofnRyaXBkdXJhdGlvbiwgZGVzaWduID0gY2x1czEuZGVzaWduKQ0KYGBgDQoNCg==</div>
 
 
 

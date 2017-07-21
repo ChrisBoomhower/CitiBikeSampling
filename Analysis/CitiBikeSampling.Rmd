@@ -56,10 +56,27 @@ if(!file.exists("popData.rds")){
 ```{r}
 
 ```
-
 #### Cluster Sampling Design
-
+First, perform SRS to obtain sample clusters.
 ```{r}
+set.seed(100)
 
+pop.data$fpc <- nrow(pop.data)
+stations <- as.character(sample(unique(pop.data$start_station_name),10))
+stations
+```
+<br>
+Next, create complex design object for one-stage cluster sampling.
+```{r}
+clus1 <- subset(pop.data, start_station_name %in% stations)
+clus1$fpc <- 330
+
+clus1.design <- svydesign(id = ~start_station_name, data = clus1, fpc = ~fpc)
+summary(clus1.design)
+```
+<br>
+Begin tripduration mean estimation *(still need to account for weights, etc.)*
+```{r}
+svymean(~tripduration, design = clus1.design)
 ```
 
