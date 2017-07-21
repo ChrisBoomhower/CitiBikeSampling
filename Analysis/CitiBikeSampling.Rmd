@@ -1,27 +1,16 @@
 ---
-title: "R Notebook"
+title: "MSDS 6370 Sampling Design"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+### Load the data
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+Load necessary libraries
 
 ```{r}
-plot(cars)
+require(survey)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-
-<br>
-*Only kept above for initial reference*
-<br>
-<br>
-
-#### Load the data
 Pulling in data only if RDS file has not already been created.
 
 ```{r}
@@ -59,5 +48,18 @@ if(!file.exists("popData.rds")){
     saveRDS(pop.data, "popData.rds")
     rm(data.frag)
 } else pop.data <- readRDS("popData.rds")
+```
+
+### Task 1
+#### Stratified Sampling (Proportional Allocation)
+
+```{r}
+
+```
+
+#### Cluster Sampling Design
+
+```{r}
+
 ```
 
