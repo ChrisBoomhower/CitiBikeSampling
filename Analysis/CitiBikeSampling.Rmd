@@ -14,7 +14,8 @@ require(survey)
 Pulling in data only if RDS file has not already been created.
 
 ```{r}
-setwd("C:\\Users\\Owner\\Documents\\GitHub\\MSDS_6370\\CitiBikeSampling\\Analysis\\Data")
+##setwd("C:\\Users\\Owner\\Documents\\GitHub\\MSDS_6370\\CitiBikeSampling\\Analysis\\Data")
+setwd("D:\\Documents\\School\\SMU\\2017 Summer\\MSDS6370 - Statistical Sampling\\Project\\CitiBikeSampling\\Analysis\\Data")
 if(!file.exists("popData.rds")){
     pop.data <- NULL
     for(i in 1:length(list.files())){
@@ -53,9 +54,109 @@ if(!file.exists("popData.rds")){
 ### Task 1
 #### Stratified Sampling (Proportional Allocation)
 
+
+Compute the sample size for SRS with the 2 step calculation from lab 5 - Q1 - check for FPC adjustment (sample size > 10% population)
 ```{r}
+####Compute the sample size for a SRS
+##step 1
+
 
 ```
+
+Compute Estimate using survey library with SRS and survey design of SRS 
+```{r}
+
+
+```
+
+Compute Estimate using survey library with SRS, but use surveyDesign of Stratified Sample
+```{r}
+
+
+```
+
+Compute the Design Effect (SE stratified design / SE SRS Design)
+```{r}
+
+
+```
+
+Compute Sample Size for Stratified Design Effect Modification (see 5.6 slides)
+```{r}
+
+
+```
+
+
+Compute Proportional Allocation sample sizes amongst stratum
+```{r}
+
+sampleSize = 250000
+
+pop.data.TOD <- pop.data[c("tripduration", "DayOfWeek")]
+head(pop.data.TOD)
+
+  # Identify Frequency of DayOfWeek Stratum
+ToDFreq <- as.data.frame(table(pop.data.TOD$DayOfWeek))
+names(ToDFreq)[1] = 'DayOfWeek'
+ToDFreq
+
+
+ToDFreq$N = nrow(pop.data.TOD)
+ToDFreq$p = ToDFreq$Freq/ToDFreq$N
+ToDFreq$SampSizeh = ToDFreq$p * sampleSize
+ToDFreq$SampSizehRounded = round(ToDFreq$SampSizeh)
+
+print(sum(ToDFreq$SampSizeh))
+
+head(ToDFreq)
+tail(ToDFreq)
+
+
+```
+
+Utilize Sample Sizes to compute an Estimate of the mean, using Stratified Design with appropriate sample size
+```{r}
+  
+pop.data.TOD <- pop.data[c("tripduration", "DayOfWeek")]
+pop.data.TOD
+
+pop.data.TOD$N <- NA
+
+  # Identify Frequency of DayOfWeek Stratum
+ToDFreq <- as.data.frame(table(pop.data.TOD$DayOfWeek))
+names(ToDFreq)[1] = 'DayOfWeek'
+ToDFreq
+
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Friday"] <- 829007
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Monday"] <- 806725
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Saturday"] <- 734053
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Sunday"] <- 674524
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Thursday"] <- 820587
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Tuesday"] <- 839970
+#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Wednesday"] <- 857450
+
+print(nrow(pop.data.TOD))
+
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Friday"] <- 829007
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Monday"] <- 806725
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Saturday"] <- 734053
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Sunday"] <- 674524
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Thursday"] <- 820587
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Tuesday"] <- 839970
+pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Wednesday"] <- 857450
+
+tail(pop.data.TOD)
+
+  # Create SurveyDesign
+mydesign <- svydesign(id = ~1, strata = ~DayOfWeek, data = pop.data.TOD, fpc = ~N)
+
+#mydesign <- postStratify(design = mydesign, strata = ~DayOfWeek, population = ToDFreq)
+
+svymean(~tripduration, design = mydesign)
+```
+
+
 #### Cluster Sampling Design
 First, perform SRS to obtain sample clusters.
 ```{r}
