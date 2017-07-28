@@ -10,13 +10,13 @@ Load necessary libraries
 
 ```{r}
 require(survey)
+require(dplyr)
 ```
 
 Pulling in data only if RDS file has not already been created.
 
 ```{r}
-##setwd("C:\\Users\\Owner\\Documents\\GitHub\\MSDS_6370\\CitiBikeSampling\\Analysis\\Data")
-setwd("D:\\Documents\\School\\SMU\\2017 Summer\\MSDS6370 - Statistical Sampling\\Project\\CitiBikeSampling\\Analysis\\Data")
+setwd("../Analysis/Data")
 if(!file.exists("popData.rds")){
     pop.data <- NULL
     for(i in 1:length(list.files())){
@@ -218,27 +218,86 @@ svymean(~tripduration, design = mydesign)
 ```
 
 
-#### Cluster Sampling Design
-First, perform SRS to obtain sample clusters.
-```{r}
-set.seed(100)
+#### Neyman Sampling Design
 
-pop.data$fpc <- nrow(pop.data)
-stations <- as.character(sample(unique(pop.data$start_station_name),10))
-stations
+```{r}
+  # Identify Frequency of DayOfWeek Stratum
+ToDFreq <- as.data.frame(table(pop.data.TOD$DayOfWeek))
+names(ToDFreq)[1] = 'DayOfWeek'
+
+stdDevs <- tapply(pop.data.TOD$tripduration, pop.data.TOD$DayOfWeek, sd)
+NhSh <- ToDFreq$Freq * stdDevs
+NhSh.ratio <- NhSh/sum(NhSh)
+sampsRaw <- round(n0srs)*NhSh.ratio
+Neyman.samples <- round(sampsRaw)
+
+#cbind(ToDFreq, stdDevs = as.data.frame(as.vector(stdDevs)), as.data.frame(NhSh), as.data.frame(NhSh.ratio), as.data.frame(sampsRaw), as.data.frame(Neyman.samples))
+data.frame(ToDFreq,
+           stdDevs = as.vector(stdDevs),
+           NhSh = as.vector(NhSh),
+           NhSh.ratio = as.vector(NhSh.ratio),
+           sampsRaw = as.vector(sampsRaw),
+           Neyman.samples = as.vector(Neyman.samples))
 ```
 <br>
-Next, create complex design object for one-stage cluster sampling.
+By rounding the calculated strata sample counts in our table output above, we now have definitive Neyman sample sizes for each stratum. To help validate these numbers' derivation, we choose to calculate their sum - their sum should calculate to our n<sub>0,srs</sub> value.
 ```{r}
-clus1 <- subset(pop.data, start_station_name %in% stations)
-clus1$fpc <- 330
-
-clus1.design <- svydesign(id = ~start_station_name, data = clus1, fpc = ~fpc)
-summary(clus1.design)
+sum(Neyman.samples)
 ```
 <br>
-Begin tripduration mean estimation *(still need to account for weights, etc.)*
+As observed above, our sum is just one sample short of our n<sub>0,srs</sub> value. This is due to rounding error when deriving our whole number sample sizes from our raw, calculated sample sizes. For this reason, we choose to select the largest raw sample size which contains a decimal value less than 0.5 and force it to round up. In this case, Saturday's value of 29459.48 fits this criterion. Therefore, we manually assign a value of 29460 to replace its rounded value of 29460.
 ```{r}
-svymean(~tripduration, design = clus1.design)
+Neyman.samples[Neyman.samples %in% 29459] <- 29460
+sum(Neyman.samples)
 ```
+
+```{r}
+pop.data.Neyman <- data.frame(DayOfWeek = pop.data.TOD$DayOfWeek, tripduration = pop.data.TOD$tripduration)
+pop.data.Neyman$N <- NA
+
+for(i in seq(1,7)) pop.data.Neyman$N[pop.data.Neyman$DayOfWeek == attributes(Neyman.samples[i])] <- Neyman.samples[i]
+
+head(pop.data.Neyman)
+tail(pop.data.Neyman)
+```
+```{r}
+prop.samp <- function(i) {
+    sample_n(pop.data.Neyman[pop.data.Neyman$DayOfWeek == attributes(Neyman.samples[i]),], Neyman.samples[i])
+}
+
+Friday.samples <- prop.samp(1)
+Monday.samples <- prop.samp(2)
+Saturday.samples <- prop.samp(3)
+Sunday.samples <- prop.samp(4)
+Thursday.samples <- prop.samp(5)
+Tuesday.samples <- prop.samp(6)
+Wednesday.samples <- prop.samp(7)
+
+NeySamp <- rbind(Sunday.samples,
+                 Monday.samples,
+                 Tuesday.samples,
+                 Wednesday.samples,
+                 Thursday.samples,
+                 Friday.samples,
+                 Saturday.samples)
+```
+
+```{r}
+NeySamp <- merge(NeySamp, ToDFreq, by = "DayOfWeek")
+```
+
+
+```{r}
+  # Create SurveyDesign
+mydesign <- svydesign(id = ~1, strata = ~DayOfWeek, data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
+
+#mydesign <- postStratify(design = mydesign, strata = ~DayOfWeek, population = ToDFreq)
+
+svymean(~tripduration, design = mydesign)
+```
+
+```{r}
+confint(svymean(~tripduration, design = mydesign))
+```
+
 
