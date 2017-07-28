@@ -170,7 +170,13 @@ NhSh.ratio <- NhSh/sum(NhSh)
 sampsRaw <- round(n0srs)*NhSh.ratio
 Neyman.samples <- round(sampsRaw)
 
-cbind(ToDFreq, stdDevs, NhSh, NhSh.ratio, sampsRaw, Neyman.samples)
+#cbind(ToDFreq, stdDevs = as.data.frame(as.vector(stdDevs)), as.data.frame(NhSh), as.data.frame(NhSh.ratio), as.data.frame(sampsRaw), as.data.frame(Neyman.samples))
+data.frame(ToDFreq,
+           stdDevs = as.vector(stdDevs),
+           NhSh = as.vector(NhSh),
+           NhSh.ratio = as.vector(NhSh.ratio),
+           sampsRaw = as.vector(sampsRaw),
+           Neyman.samples = as.vector(Neyman.samples))
 ```
 <br>
 By rounding the calculated strata sample counts in our table output above, we now have definitive Neyman sample sizes for each stratum. To help validate these numbers' derivation, we choose to calculate their sum - their sum should calculate to our n<sub>0,srs</sub> value.
