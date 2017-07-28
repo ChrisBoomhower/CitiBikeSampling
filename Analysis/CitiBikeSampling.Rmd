@@ -1,6 +1,7 @@
 ---
 title: "MSDS 6370 Sampling Design"
-output: html_notebook
+output:
+  html_notebook: default
 ---
 
 ### Load the data
@@ -50,28 +51,88 @@ if(!file.exists("popData.rds")){
     rm(data.frag)
 } else pop.data <- readRDS("popData.rds")
 ```
+```{r}
+boxplot(tripduration ~ DayOfWeek, data = pop.data, ylab = "tripduration", xlab = "DayOfWeek")
+```
 
 ### Task 1
 #### Stratified Sampling (Proportional Allocation)
 
+First, we estimate the number of samples needed for a simple random sample(SRS) design. Although our goal is to perform a stratified sample for our estimate, we first need to compute a SRS design estimate to assist in calculation of design effect for the stratified design.
 
-Compute the sample size for SRS with the 2 step calculation from lab 5 - Q1 - check for FPC adjustment (sample size > 10% population)
+Step 1: $n_{0,srs}=\frac{(Z_{\alpha/2}S)^2}{(moe)^2}=\frac{1.96^2 \times 3996.942^2}{(15)^2}=272762.95\approx272763$
+
+Step 2: $n_{srs}=\frac{n_{0,srs}}{1+\frac{n_{0,srs}}{N}}=\frac{272763}{1+\frac{272763}{5562316}}=260012.6\approx260013$
+
+Because the sample size is less than 10% of the original population, we may ignore the fpc adjustment performed in step 2, leaving us with a sample size of 272763.
+
 ```{r}
 ####Compute the sample size for a SRS
 ##step 1
+stdev = sd(pop.data$tripduration)
+MOE   = 15 #seconds
+N = nrow(pop.data)
+print(stdev)
+n0srs = ceiling((1.96^2*stdev^2)/(MOE^2))
+
+nsrs = ceiling(n0srs/(1+(n0srs/N)))
+
+print(paste0('With a sample size only ',round(n0srs/N*100,4), '% of the original population, we ignore fpc.'))
+
+print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs,'.'))
 
 
 ```
 
 Compute Estimate using survey library with SRS and survey design of SRS 
 ```{r}
+set.seed(n0srs)
 
+pop.data.SRSSampled = sample_n(pop.data,n0srs)
+nrow(pop.data.SRSSampled)
+
+boxplot(tripduration ~ DayOfWeek, data = pop.data.SRSSampled, ylab = "tripduration", xlab = "DayOfWeek")
+
+mydesign <- svydesign(id = ~1, data = pop.data.SRSSampled)
+
+svymean(~tripduration, design = mydesign)
 
 ```
 
-Compute Estimate using survey library with SRS, but use surveyDesign of Stratified Sample
+Compute Estimate using survey library with n0srs, but use surveyDesign of Stratified Sample
+
+
 ```{r}
 
+  # Identify Frequency of DayOfWeek Stratum
+PropFreq <- as.data.frame(table(pop.data$DayOfWeek))
+names(PropFreq)[1] = 'DayOfWeek'
+PropFreq
+
+PropFreq$N = nrow(pop.data)
+PropFreq$p = PropFreq$Freq/PropFreq$N
+PropFreq$SampSizeh = PropFreq$p * n0srs
+PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
+print(PropFreq)
+
+pop.data.PropSampled<-rbind(
+                             sample_n(pop.data[pop.data$DayOfWeek == "Monday",],39560)
+                            ,sample_n(pop.data[pop.data$DayOfWeek == "Tuesday",],41190)
+                            ,sample_n(pop.data[pop.data$DayOfWeek == "Wednesday",],42047)
+                            ,sample_n(pop.data[pop.data$DayOfWeek == "Thursday",],40240)
+                            ,sample_n(pop.data[pop.data$DayOfWeek == "Friday",],40653)
+                            ,sample_n(pop.data[pop.data$DayOfWeek == "Saturday",],35996)
+                            ,sample_n(pop.data[pop.data$DayOfWeek == "Sunday",],33077)
+)
+
+
+nrow(pop.data.PropSampled)
+
+boxplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled, ylab = "tripduration", xlab = "DayOfWeek")
+
+mydesign <- svydesign(id = ~1, strata = ~DayOfWeek, data = pop.data.PropSampled)
+
+svymean(~tripduration, design = mydesign)
 
 ```
 
@@ -109,8 +170,8 @@ ToDFreq$SampSizehRounded = round(ToDFreq$SampSizeh)
 
 print(sum(ToDFreq$SampSizeh))
 
-head(ToDFreq)
-tail(ToDFreq)
+ToDFreq
+
 
 
 ```
