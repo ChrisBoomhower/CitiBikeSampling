@@ -11,6 +11,7 @@ Load necessary libraries
 ```{r}
 require(survey)
 require(dplyr)
+require(lattice)
 ```
 
 Pulling in data only if RDS file has not already been created.
@@ -51,8 +52,25 @@ if(!file.exists("popData.rds")){
     rm(data.frag)
 } else pop.data <- readRDS("popData.rds")
 ```
+
 ```{r}
-boxplot(tripduration ~ DayOfWeek, data = pop.data, ylab = "tripduration", xlab = "DayOfWeek")
+
+    # BoxPlot tripDuration - Heavy Outliers!
+boxplot(pop.data$tripduration)
+    
+    # How Many Greater than 24 hours?
+print(nrow(pop.data[pop.data$tripduration>86400,]))
+
+    # Remove > 24 Hours
+pop.data <- pop.data[pop.data$tripduration<86400,c("tripduration", "DayOfWeek", "TimeOfDay")]
+
+boxplot(pop.data$tripduration)
+
+bwplot(tripduration ~ DayOfWeek, data = pop.data)
+bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
+
+print(paste0("The true mean of the population less outliers is: ", mean(pop.data$tripduration)))
+
 ```
 
 ### Task 1
@@ -60,11 +78,10 @@ boxplot(tripduration ~ DayOfWeek, data = pop.data, ylab = "tripduration", xlab =
 
 First, we estimate the number of samples needed for a simple random sample(SRS) design. Although our goal is to perform a stratified sample for our estimate, we first need to compute a SRS design estimate to assist in calculation of design effect for the stratified design.
 
-Step 1: $n_{0,srs}=\frac{(Z_{\alpha/2}S)^2}{(moe)^2}=\frac{1.96^2 \times 3996.942^2}{(15)^2}=272762.95\approx272763$
+$n_{0,srs}=\frac{(Z_{\alpha/2}S)^2}{(moe)^2}=\frac{1.96^2 \times 1400.1478^2}{(15)^2}=33471.6752\approx33472$
 
-Step 2: $n_{srs}=\frac{n_{0,srs}}{1+\frac{n_{0,srs}}{N}}=\frac{272763}{1+\frac{272763}{5562316}}=260012.6\approx260013$
 
-Because the sample size is less than 10% of the original population, we may ignore the fpc adjustment performed in step 2, leaving us with a sample size of 272763.
+Because the sample size is less than 10% of the original population, we may ignore the fpc adjustment performed in step 2, leaving us with a sample size of 33472.
 
 ```{r}
 ####Compute the sample size for a SRS
@@ -75,11 +92,9 @@ N = nrow(pop.data)
 print(stdev)
 n0srs = ceiling((1.96^2*stdev^2)/(MOE^2))
 
-nsrs = ceiling(n0srs/(1+(n0srs/N)))
-
 print(paste0('With a sample size only ',round(n0srs/N*100,4), '% of the original population, we ignore fpc.'))
 
-print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs,'.'))
+print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs, '.'))
 
 
 ```
@@ -91,12 +106,16 @@ set.seed(n0srs)
 pop.data.SRSSampled = sample_n(pop.data,n0srs)
 nrow(pop.data.SRSSampled)
 
-boxplot(tripduration ~ DayOfWeek, data = pop.data.SRSSampled, ylab = "tripduration", xlab = "DayOfWeek")
+bwplot(tripduration ~ DayOfWeek, data = pop.data.SRSSampled)
+bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.SRSSampled, scales=list(x=list(rot=45)))
 
 mydesign <- svydesign(id = ~1, data = pop.data.SRSSampled)
 
-svymean(~tripduration, design = mydesign)
+srsMean = svymean(~tripduration, design = mydesign)
+srsMean
 
+rm(pop.data.SRSSampled)
+rm(mydesign)
 ```
 
 Compute Estimate using survey library with n0srs, but use surveyDesign of Stratified Sample
@@ -104,8 +123,10 @@ Compute Estimate using survey library with n0srs, but use surveyDesign of Strati
 
 ```{r}
 
+set.seed(n0srs)
+
   # Identify Frequency of DayOfWeek Stratum
-PropFreq <- as.data.frame(table(pop.data$DayOfWeek))
+PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
 names(PropFreq)[1] = 'DayOfWeek'
 PropFreq
 
@@ -113,119 +134,120 @@ PropFreq$N = nrow(pop.data)
 PropFreq$p = PropFreq$Freq/PropFreq$N
 PropFreq$SampSizeh = PropFreq$p * n0srs
 PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
-print(PropFreq)
+print(head(PropFreq))
 
-pop.data.PropSampled<-rbind(
-                             sample_n(pop.data[pop.data$DayOfWeek == "Monday",],39560)
-                            ,sample_n(pop.data[pop.data$DayOfWeek == "Tuesday",],41190)
-                            ,sample_n(pop.data[pop.data$DayOfWeek == "Wednesday",],42047)
-                            ,sample_n(pop.data[pop.data$DayOfWeek == "Thursday",],40240)
-                            ,sample_n(pop.data[pop.data$DayOfWeek == "Friday",],40653)
-                            ,sample_n(pop.data[pop.data$DayOfWeek == "Saturday",],35996)
-                            ,sample_n(pop.data[pop.data$DayOfWeek == "Sunday",],33077)
-)
+pop.data.PropSampled <- NULL
 
+for (i in 1:nrow(PropFreq)){
+  pop.data.PropSampled<-rbind(pop.data.PropSampled,
+                            sample_n(pop.data[(pop.data$DayOfWeek == PropFreq[i,"DayOfWeek"] 
+                                                  & pop.data$TimeOfDay ==   PropFreq[i,"TimeOfDay"])
+                                              ,]
+                                     ,PropFreq[i,"SampSizehRounded"]
+                                     )
+                            )
+                                
+}
+
+print(head(pop.data.PropSampled))
 
 nrow(pop.data.PropSampled)
 
-boxplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled, ylab = "tripduration", xlab = "DayOfWeek")
+bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled)
+bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45)))
 
 mydesign <- svydesign(id = ~1, strata = ~DayOfWeek, data = pop.data.PropSampled)
 
-svymean(~tripduration, design = mydesign)
+propMean = svymean(~tripduration, design = mydesign)
+propMean
+
+rm(pop.data.PropSampled)
+rm(mydesign)
 
 ```
 
 Compute the Design Effect (SE stratified design / SE SRS Design)
+
+$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{7.3612}{8.2137}=0.8962$
+
 ```{r}
 
+deffProp = as.numeric(SE(propMean)/SE(srsMean))
+deffProp
 
 ```
 
-Compute Sample Size for Stratified Design Effect Modification (see 5.6 slides)
-```{r}
+Compute appropriate Sample Size for Stratified Design Effect Modification (see 5.6 slides)
+$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 0.8962102 = 29997.95 \approx 29998$
 
+```{r}
+n0prop = n0srs*deffProp
+n0prop
+n0prop = ceiling(n0prop)
+n0prop
 
 ```
 
 
 Compute Proportional Allocation sample sizes amongst stratum
-```{r}
-
-sampleSize = 250000
-
-pop.data.TOD <- pop.data[c("tripduration", "DayOfWeek")]
-head(pop.data.TOD)
-
-  # Identify Frequency of DayOfWeek Stratum
-ToDFreq <- as.data.frame(table(pop.data.TOD$DayOfWeek))
-names(ToDFreq)[1] = 'DayOfWeek'
-ToDFreq
-
-
-ToDFreq$N = nrow(pop.data.TOD)
-ToDFreq$p = ToDFreq$Freq/ToDFreq$N
-ToDFreq$SampSizeh = ToDFreq$p * sampleSize
-ToDFreq$SampSizehRounded = round(ToDFreq$SampSizeh)
-
-print(sum(ToDFreq$SampSizeh))
-
-ToDFreq
-
-
-
-```
-
 Utilize Sample Sizes to compute an Estimate of the mean, using Stratified Design with appropriate sample size
+
 ```{r}
-  
-pop.data.TOD <- pop.data[c("tripduration", "DayOfWeek")]
-pop.data.TOD
+set.seed(n0srs)
 
-pop.data.TOD$N <- NA
+ # Identify Frequency of DayOfWeek Stratum
+PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
+names(PropFreq)[1] = 'DayOfWeek'
+PropFreq
 
-  # Identify Frequency of DayOfWeek Stratum
-ToDFreq <- as.data.frame(table(pop.data.TOD$DayOfWeek))
-names(ToDFreq)[1] = 'DayOfWeek'
-ToDFreq
+PropFreq$N = nrow(pop.data)
+PropFreq$p = PropFreq$Freq/PropFreq$N
+PropFreq$SampSizeh = PropFreq$p * n0prop
+PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
+print(PropFreq)
 
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Friday"] <- 829007
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Monday"] <- 806725
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Saturday"] <- 734053
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Sunday"] <- 674524
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Thursday"] <- 820587
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Tuesday"] <- 839970
-#pop.data.TOD$Nh[pop.data.TOD$DayOfWeek == "Wednesday"] <- 857450
+pop.data.PropSampled <- NULL
 
-print(nrow(pop.data.TOD))
+for (i in 1:nrow(PropFreq)){
+  pop.data.PropSampled<-rbind(pop.data.PropSampled,
+                            sample_n(pop.data[(pop.data$DayOfWeek == PropFreq[i,"DayOfWeek"] 
+                                                  & pop.data$TimeOfDay ==   PropFreq[i,"TimeOfDay"])
+                                              ,]
+                                     ,PropFreq[i,"SampSizehRounded"]
+                                     )
+                            )
+                                
+}
 
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Friday"] <- 829007
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Monday"] <- 806725
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Saturday"] <- 734053
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Sunday"] <- 674524
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Thursday"] <- 820587
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Tuesday"] <- 839970
-pop.data.TOD$N[pop.data.TOD$DayOfWeek == "Wednesday"] <- 857450
+nrow(pop.data.PropSampled)
 
-tail(pop.data.TOD)
+bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled)
+bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45)))
 
-  # Create SurveyDesign
-mydesign <- svydesign(id = ~1, strata = ~DayOfWeek, data = pop.data.TOD, fpc = ~N)
+mydesign <- svydesign(id = ~1, strata = ~DayOfWeek, data = pop.data.PropSampled)
 
-#mydesign <- postStratify(design = mydesign, strata = ~DayOfWeek, population = ToDFreq)
+propMean = svymean(~tripduration, design = mydesign)
+propMean
 
-svymean(~tripduration, design = mydesign)
+propCI = confint(propMean)
+propCI
+
+
+rm(pop.data.PropSampled)
+rm(mydesign)
 ```
+
+
 
 
 #### Neyman Sampling Design
 
 ```{r}
   # Identify Frequency of DayOfWeek Stratum
-ToDFreq <- as.data.frame(table(pop.data.TOD$DayOfWeek))
+ToDFreq <- as.data.frame(table(pop.data$DayOfWeek))
 names(ToDFreq)[1] = 'DayOfWeek'
 
-stdDevs <- tapply(pop.data.TOD$tripduration, pop.data.TOD$DayOfWeek, sd)
+stdDevs <- tapply(pop.data$tripduration, pop.data$DayOfWeek, sd)
 NhSh <- ToDFreq$Freq * stdDevs
 NhSh.ratio <- NhSh/sum(NhSh)
 sampsRaw <- round(n0srs)*NhSh.ratio
@@ -252,7 +274,7 @@ sum(Neyman.samples)
 ```
 
 ```{r}
-pop.data.Neyman <- data.frame(DayOfWeek = pop.data.TOD$DayOfWeek, tripduration = pop.data.TOD$tripduration)
+pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, tripduration = pop.data$tripduration)
 pop.data.Neyman$N <- NA
 
 for(i in seq(1,7)) pop.data.Neyman$N[pop.data.Neyman$DayOfWeek == attributes(Neyman.samples[i])] <- Neyman.samples[i]
