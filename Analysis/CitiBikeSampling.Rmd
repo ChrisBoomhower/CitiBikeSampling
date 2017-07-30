@@ -69,7 +69,7 @@ boxplot(pop.data$tripduration)
 bwplot(tripduration ~ DayOfWeek, data = pop.data)
 bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
 
-print(paste0("The true mean of the population less outliers is: ", mean(pop.data$tripduration)))
+print(paste0("The true mean of the population less outliers is: ", print(mean(pop.data$tripduration))))
 
 ```
 
@@ -132,9 +132,9 @@ PropFreq
 
 PropFreq$N = nrow(pop.data)
 PropFreq$p = PropFreq$Freq/PropFreq$N
-PropFreq$SampSizeh = PropFreq$p * n0srs
+PropFreq$SampSizeh = (PropFreq$p * n0srs)-.072  #adjustment of .072 in order to round down the closest to .5 stratum due to an original rounded sample size 2 higher than n0srs
 PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
-print(head(PropFreq))
+print(PropFreq)
 
 pop.data.PropSampled <- NULL
 
@@ -148,8 +148,6 @@ for (i in 1:nrow(PropFreq)){
                             )
                                 
 }
-
-print(head(pop.data.PropSampled))
 
 nrow(pop.data.PropSampled)
 
@@ -168,7 +166,7 @@ rm(mydesign)
 
 Compute the Design Effect (SE stratified design / SE SRS Design)
 
-$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{7.3612}{8.2137}=0.8962$
+$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.1176}{8.2137}=0.9883$
 
 ```{r}
 
@@ -178,7 +176,7 @@ deffProp
 ```
 
 Compute appropriate Sample Size for Stratified Design Effect Modification (see 5.6 slides)
-$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 0.8962102 = 29997.95 \approx 29998$
+$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33472 \times 0.9883 = 33080.25 \approx 33081$
 
 ```{r}
 n0prop = n0srs*deffProp
@@ -202,7 +200,7 @@ PropFreq
 
 PropFreq$N = nrow(pop.data)
 PropFreq$p = PropFreq$Freq/PropFreq$N
-PropFreq$SampSizeh = PropFreq$p * n0prop
+PropFreq$SampSizeh = (PropFreq$p * n0prop)+.01 # adjustment +.... to account for an original rounded sample size 1 less than the computed sample size, accounting for design effect.
 PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
 print(PropFreq)
 
@@ -231,6 +229,7 @@ propMean
 
 propCI = confint(propMean)
 propCI
+
 
 
 rm(pop.data.PropSampled)
