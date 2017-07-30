@@ -75,7 +75,9 @@ boxplot(log(pop.data$tripdurationlog))
 bwplot(log(tripdurationlog) ~ DayOfWeek, data = pop.data)
 bwplot(log(tripdurationlog) ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
 
-print(paste0("The true mean of the population less outliers is: ", print(mean(pop.data$tripduration))))
+trueMean <- mean(pop.data$tripduration)
+
+print(paste0("The true mean of the population less outliers is: ", trueMean))
 
 ```
 
@@ -119,29 +121,48 @@ print(paste0('Sample Size needed for an estimate of the mean trip duration withi
 
 Compute Estimate using survey library with SRS and survey design of SRS 
 ```{r}
-set.seed(n0srs)
+SrsMeanEstimate<-function(Seed, SampSize, printOutput= TRUE){
+set.seed(Seed)
 
-pop.data.SRSSampled = sample_n(pop.data,n0srs)
-nrow(pop.data.SRSSampled)
+pop.data.SRSSampled = sample_n(pop.data,SampSize)
 
-bwplot(tripduration ~ DayOfWeek, data = pop.data.SRSSampled)
-bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.SRSSampled, scales=list(x=list(rot=45)))
+if(printOutput == TRUE){
+  print(nrow(pop.data.SRSSampled))
+  print(bwplot(tripduration ~ DayOfWeek, data = pop.data.SRSSampled))
+  print(bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.SRSSampled, scales=list(x=list(rot=45))))
+}
 
 mydesign <- svydesign(id = ~1, data = pop.data.SRSSampled)
 
 srsMean = svymean(~tripduration, design = mydesign)
-srsMean
+srsSE = SE(srsMean)
+srsCI = confint(srsMean)
 
 rm(pop.data.SRSSampled)
 rm(mydesign)
+
+return(list(as.numeric(srsMean[1]),
+            as.numeric(srsSE),
+            as.numeric(srsCI[1]),
+            as.numeric(srsCI[2])
+           )
+      )
+}
+```
+
+```{r}
+srsMean <- SrsMeanEstimate(n0srs, n0srs)
+print(paste('The Mean Estimate =', srsMean[[1]]))
+print(paste('The Standard Error =', srsMean[[2]]))
 ```
 
 Compute Estimate using survey library with n<sub>0,srs</sub>, but use surveyDesign of Stratified Sample
 
 
 ```{r}
+PropMeanEstimate<-function(Seed, SampSize, SampSizeAdj, printOutput= TRUE){
 
-set.seed(n0srs)
+set.seed(Seed)
 
   # Identify Frequency of DayOfWeek Stratum
 PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
@@ -150,9 +171,9 @@ PropFreq
 
 PropFreq$N = nrow(pop.data)
 PropFreq$p = PropFreq$Freq/PropFreq$N
-PropFreq$SampSizeh = (PropFreq$p * n0srs)-.072  #adjustment of .072 in order to round down the closest to .5 stratum due to an original rounded sample size 2 higher than n0srs
+PropFreq$SampSizeh = (PropFreq$p * SampSize)-SampSizeAdj  #adjustment of SampSizeAdj in order to round down the closest to .5 stratum due to an original rounded sample size 2 higher than n0srs
 PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
-print(PropFreq)
+
 
 pop.data.PropSampled <- NULL
 
@@ -167,19 +188,36 @@ for (i in 1:nrow(PropFreq)){
                                 
 }
 
-nrow(pop.data.PropSampled)
-
-bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled)
-bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45)))
+if(printOutput == TRUE){
+  print(PropFreq)
+  print(nrow(pop.data.PropSampled))
+  print(bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled))
+  print(bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45))))
+}
 
 mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = pop.data.PropSampled)
 
 propMean = svymean(~tripduration, design = mydesign)
-propMean
+propSE = SE(propMean)
+propCI = confint(propMean)
 
 rm(pop.data.PropSampled)
 rm(mydesign)
+propCI = confint(propMean)
+return(list(as.numeric(propMean[1]),
+            as.numeric(propSE),
+            as.numeric(propCI[1]),
+            as.numeric(propCI[2])
+           )
+      )
+}
 
+```
+
+```{r}
+propMean <- PropMeanEstimate(n0srs, n0srs, .072)
+print(paste('The Mean Estimate =', propMean[[1]]))
+print(paste('The Standard Error =', propMean[[2]]))
 ```
 
 Compute the Design Effect (SE stratified design / SE SRS Design)
@@ -188,7 +226,7 @@ $deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.1176}{8.
 
 ```{r}
 
-deffProp = as.numeric(SE(propMean)/SE(srsMean))
+deffProp = as.numeric(propMean[[2]]/srsMean[[2]])
 deffProp
 
 ```
@@ -209,49 +247,9 @@ Compute Proportional Allocation sample sizes amongst stratum
 Utilize Sample Sizes to compute an Estimate of the mean, using Stratified Design with appropriate sample size
 
 ```{r}
-set.seed(n0srs)
-
- # Identify Frequency of DayOfWeek Stratum
-PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
-names(PropFreq)[1] = 'DayOfWeek'
-PropFreq
-
-PropFreq$N = nrow(pop.data)
-PropFreq$p = PropFreq$Freq/PropFreq$N
-PropFreq$SampSizeh = (PropFreq$p * n0prop)+.01 # adjustment +.... to account for an original rounded sample size 1 less than the computed sample size, accounting for design effect.
-PropFreq$SampSizehRounded = round(PropFreq$SampSizeh)
-print(PropFreq)
-
-pop.data.PropSampled <- NULL
-
-for (i in 1:nrow(PropFreq)){
-  pop.data.PropSampled<-rbind(pop.data.PropSampled,
-                            sample_n(pop.data[(pop.data$DayOfWeek == PropFreq[i,"DayOfWeek"] 
-                                                  & pop.data$TimeOfDay ==   PropFreq[i,"TimeOfDay"])
-                                              ,]
-                                     ,PropFreq[i,"SampSizehRounded"]
-                                     )
-                            )
-                                
-}
-
-nrow(pop.data.PropSampled)
-
-bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled)
-bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45)))
-
-mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = pop.data.PropSampled)
-
-propMean = svymean(~tripduration, design = mydesign)
-propMean
-
-propCI = confint(propMean)
-propCI
-
-
-
-rm(pop.data.PropSampled)
-rm(mydesign)
+propMean <- PropMeanEstimate(n0srs, n0prop, -.01)
+print(paste('The Mean Estimate =', propMean[[1]]))
+print(paste('The Standard Error =', propMean[[2]]))
 ```
 
 
@@ -347,7 +345,7 @@ $deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{7.7424}{8.
 
 ```{r}
 
-deffNey = as.numeric(SE(NeyMean)/SE(srsMean))
+deffNey = as.numeric(SE(NeyMean)/srsMean[[2]])
 deffNey
 
 ```
@@ -422,20 +420,49 @@ rm(mydesign)
 
 ```{r}
 
-testNum <- ceiling(5/1000*N)
+SeedList <- c(10000, 20000, 30000, 40000, 50000)
+
+df<- NULL
+
+  #SRS Seed Executions
+for (seed in SeedList){
+  srsEstimate <- SrsMeanEstimate(seed, n0srs, FALSE)
+  srsEstimate <- data.frame('SRS', seed, srsEstimate)
+  names(srsEstimate) <- c("EstimateType","SeedValue", "MeanEstimate", "SE", "LCI", "UCI")
+  df<- rbind(df,
+             srsEstimate
+            )
+}
+
+  #Prop Seed Executions
+for (seed in SeedList){
+  PropEstimate <- PropMeanEstimate(seed, n0prop, -.01, FALSE)
+  PropEstimate <- data.frame('Prop', seed, PropEstimate)
+  names(PropEstimate) <- c("EstimateType","SeedValue", "MeanEstimate", "SE", "LCI", "UCI")
+  df<- rbind(df,
+             PropEstimate
+            )
+}
 
 
-TestObs<- sample_n(pop.data,testNum)
+#  #Ney Seed Executions
+#for (seed in SeedList){
+#  NeyEstimate <- ####INSERT FUNCTION CALL HERE 
+#  NeyEstimate <- data.frame('Ney', seed, NeyEstimate)
+#  names(NeyEstimate) <- c("EstimateType","SeedValue", "MeanEstimate", "SE", "LCI", "UCI")
+#  df<- rbind(df,
+#             NeyEstimate
+#            )
+#}
 
-TestObs$LCI <- NeyCI[1]
-TestObs$UCI <- NeyCI[2]
+  #Add True Mean Value, in-line with estimates
+df$TrueMeanValue <- trueMean
 
-TestObs$testWithinCIBool<- TestObs$tripduration >= TestObs$LCI & TestObs$tripduration <= TestObs$UCI
+  #Add Bool Value for whether the Conf Limit contains the True Mean Value
+df$WithinConfLimBool <- df$LCI <= df$TrueMeanValue & df$UCI >= df$TrueMeanValue
 
-numCorrect = sum(TestObs$testWithinCIBool)
-pctCorrect = round((numCorrect/testNum)*100.0,4)
+  #Print Results
+print(df)
 
-print(paste0('The Total number of Test Observations from the original data that fit within our Mean Estimate Confidence Interval is : ',pctCorrect,'%'))
 
-print(paste0('Out of a total ', testNum, ' tests(5/1000*N to produce a proportional test to our total population size), we computed ', numCorrect, ' to fit within our calculated confidence interval of: (',round(NeyCI[1],4),', ',round(NeyCI[2],4),')'))
 ```
