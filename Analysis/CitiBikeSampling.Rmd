@@ -211,7 +211,7 @@ Utilize Sample Sizes to compute an Estimate of the mean, using Stratified Design
 ```{r}
 set.seed(n0srs)
 
- # Identify Frequency of DayOfWeek Stratum
+ # Identify Frequency of DayOfWeek and TimeOfDay Stratum
 PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
 names(PropFreq)[1] = 'DayOfWeek'
 PropFreq
@@ -316,6 +316,7 @@ tail(pop.data.Neyman)
 ```
 
 ```{r}
+set.seed(n0srs)
 pop.data.NeySampled <- NULL
 
 for (i in 1:nrow(NeyFreq)){
@@ -367,11 +368,10 @@ Compute Neyman Allocation sample sizes amongst stratum
 Utilize Sample Sizes to compute an Estimate of the mean, using Neyman Design with appropriate sample size
 
 ```{r}
-#NeyFreq <- data.frame(NA)
 sample.Neyman <- function(seed.value){
     set.seed(seed.value)
     
-      # Identify Frequency of DayOfWeek Stratum
+      # Identify Frequency of DayOfWeek and TimeOfDay Stratum
     NeyFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
     names(NeyFreq)[1] = 'DayOfWeek'
     
@@ -414,26 +414,6 @@ Neyman.survey <- function(NeymanSamps, seed.value, Freq, Neyman.samples){
                                          Neyman.samples[i]))
     
     }
-    
-    # for (i in 1:nrow(Freq)){
-    #   pop.data.NeySampled<-rbind(pop.data.NeySampled,
-    #                             sample_n(pop.data[(pop.data$DayOfWeek == NeymanSamps[i,"DayOfWeek"] 
-    #                                               & pop.data$TimeOfDay ==   NeymanSamps[i,"TimeOfDay"])
-    #                                           ,],
-    #                                      NeymanSamps[i, "Neyman.samples"]))
-    # 
-    # }
-    
-#     for (i in 1:nrow(PropFreq)){
-#   pop.data.PropSampled<-rbind(pop.data.PropSampled,
-#                             sample_n(pop.data[(pop.data$DayOfWeek == PropFreq[i,"DayOfWeek"] 
-#                                                   & pop.data$TimeOfDay ==   PropFreq[i,"TimeOfDay"])
-#                                               ,]
-#                                      ,PropFreq[i,"SampSizehRounded"]
-#                                      )
-#                             )
-#                                 
-# }
     
     NeySamp <- merge(pop.data.NeySampled, Freq, by = c("TimeOfDay","DayOfWeek"))
     
