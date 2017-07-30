@@ -69,6 +69,12 @@ boxplot(pop.data$tripduration)
 bwplot(tripduration ~ DayOfWeek, data = pop.data)
 bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
 
+  # Still heavily left skewed, so perform a log transform
+pop.data$tripdurationlog <- log(pop.data$tripduration)
+boxplot(log(pop.data$tripdurationlog))
+bwplot(log(tripdurationlog) ~ DayOfWeek, data = pop.data)
+bwplot(log(tripdurationlog) ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
+
 print(paste0("The true mean of the population less outliers is: ", print(mean(pop.data$tripduration))))
 
 ```
@@ -85,7 +91,6 @@ Because the sample size is less than 10% of the original population, we may igno
 
 ```{r}
 ####Compute the sample size for a SRS
-##step 1
 stdev = sd(pop.data$tripduration)
 MOE   = 15 #seconds
 N = nrow(pop.data)
@@ -96,6 +101,19 @@ print(paste0('With a sample size only ',round(n0srs/N*100,4), '% of the original
 
 print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs, '.'))
 
+
+
+##Log Transform Code.... Having Issues Here 
+#stdev <- sd(pop.data$tripdurationlog)
+#MOE   <- 15 #seconds
+#MOElog <- log(MOE)
+#N <- nrow(pop.data)
+#print(stdev)
+#n0srs <- ceiling((1.96^2*stdev^2)/(MOElog^2))
+#
+#print(paste0('With a sample size only ',round(n0srs/N*100,6), '% of the original population, we ignore fpc.'))
+#
+#print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs, '.'))
 
 ```
 
@@ -400,4 +418,24 @@ NeyCI
 
 rm(pop.data.Neyman)
 rm(mydesign)
+```
+
+```{r}
+
+testNum <- ceiling(5/1000*N)
+
+
+TestObs<- sample_n(pop.data,testNum)
+
+TestObs$LCI <- NeyCI[1]
+TestObs$UCI <- NeyCI[2]
+
+TestObs$testWithinCIBool<- TestObs$tripduration >= TestObs$LCI & TestObs$tripduration <= TestObs$UCI
+
+numCorrect = sum(TestObs$testWithinCIBool)
+pctCorrect = round((numCorrect/testNum)*100.0,4)
+
+print(paste0('The Total number of Test Observations from the original data that fit within our Mean Estimate Confidence Interval is : ',pctCorrect,'%'))
+
+print(paste0('Out of a total ', testNum, ' tests(5/1000*N to produce a proportional test to our total population size), we computed ', numCorrect, ' to fit within our calculated confidence interval of: (',round(NeyCI[1],4),', ',round(NeyCI[2],4),')'))
 ```
