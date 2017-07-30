@@ -325,11 +325,7 @@ NeyMean <- svymean(~tripduration, design = mydesign)
 NeyMean
 ```
 
-```{r}
-confint(svymean(~tripduration, design = mydesign))
-```
-
-$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.2923}{8.2137}=1.0096$
+$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{7.7424}{8.2137}=0.9426$
 
 ```{r}
 
@@ -339,7 +335,7 @@ deffNey
 ```
 
 Compute appropriate Sample Size for Neyman Design Effect Modification (see 5.6 slides)
-$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 1.0096 = 33792.23 \approx 33793$
+$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 0.9426 = 31551.39 \approx 31552$
 
 ```{r}
 n0Ney = n0srs*deffNey
@@ -399,5 +395,9 @@ mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeyS
 NeyMean <- svymean(~tripduration, design = mydesign)
 NeyMean
 
-confint(svymean(~tripduration, design = mydesign))
+NeyCI <- confint(svymean(~tripduration, design = mydesign))
+NeyCI
+
+rm(pop.data.Neyman)
+rm(mydesign)
 ```
