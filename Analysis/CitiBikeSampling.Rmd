@@ -156,7 +156,7 @@ nrow(pop.data.PropSampled)
 bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled)
 bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45)))
 
-mydesign <- svydesign(id = ~1, strata = ~DayOfWeek + TimeOfDay, data = pop.data.PropSampled)
+mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = pop.data.PropSampled)
 
 propMean = svymean(~tripduration, design = mydesign)
 propMean
@@ -224,7 +224,7 @@ nrow(pop.data.PropSampled)
 bwplot(tripduration ~ DayOfWeek, data = pop.data.PropSampled)
 bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data.PropSampled, scales=list(x=list(rot=45)))
 
-mydesign <- svydesign(id = ~1, strata = ~DayOfWeek + TimeOfDay, data = pop.data.PropSampled)
+mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = pop.data.PropSampled)
 
 propMean = svymean(~tripduration, design = mydesign)
 propMean
@@ -303,7 +303,7 @@ NeySamp <- merge(pop.data.NeySampled, PropFreq, by = c("TimeOfDay","DayOfWeek"))
 
 ```{r}
   # Create SurveyDesign
-mydesign <- svydesign(id = ~1, strata = ~DayOfWeek + TimeOfDay, data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
+mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
 
 #mydesign <- postStratify(design = mydesign, strata = ~DayOfWeek, population = ToDFreq)
 
@@ -315,7 +315,7 @@ NeyMean
 confint(svymean(~tripduration, design = mydesign))
 ```
 
-$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.2456}{8.2137}=0.0722$
+$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.2923}{8.2137}=1.0096$
 
 ```{r}
 
@@ -325,7 +325,7 @@ deffNey
 ```
 
 Compute appropriate Sample Size for Neyman Design Effect Modification (see 5.6 slides)
-$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 1.004 = 33601.98 \approx 33602$
+$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 1.0096 = 33792.23 \approx 33793$
 
 ```{r}
 n0Ney = n0srs*deffNey
@@ -380,7 +380,7 @@ for (i in 1:nrow(PropFreq)){
 NeySamp <- merge(pop.data.NeySampled, PropFreq, by = c("TimeOfDay","DayOfWeek"))
 
   # Create SurveyDesign
-mydesign <- svydesign(id = ~1, strata = ~DayOfWeek + TimeOfDay, data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
+mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
 
 #mydesign <- postStratify(design = mydesign, strata = ~DayOfWeek, population = ToDFreq)
 
