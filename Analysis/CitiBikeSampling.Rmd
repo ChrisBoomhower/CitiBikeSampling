@@ -69,12 +69,6 @@ boxplot(pop.data$tripduration)
 bwplot(tripduration ~ DayOfWeek, data = pop.data)
 bwplot(tripduration ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
 
-  # Still heavily left skewed, so perform a log transform
-pop.data$tripdurationlog <- log(pop.data$tripduration)
-boxplot(log(pop.data$tripdurationlog))
-bwplot(log(tripdurationlog) ~ DayOfWeek, data = pop.data)
-bwplot(log(tripdurationlog) ~ TimeOfDay | DayOfWeek, data = pop.data, scales=list(x=list(rot=45)))
-
 trueMean <- mean(pop.data$tripduration)
 
 print(paste0("The true mean of the population less outliers is: ", trueMean))
@@ -102,20 +96,6 @@ n0srs = ceiling((1.96^2*stdev^2)/(MOE^2))
 print(paste0('With a sample size only ',round(n0srs/N*100,4), '% of the original population, we ignore fpc.'))
 
 print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs, '.'))
-
-
-
-##Log Transform Code.... Having Issues Here 
-#stdev <- sd(pop.data$tripdurationlog)
-#MOE   <- 15 #seconds
-#MOElog <- log(MOE)
-#N <- nrow(pop.data)
-#print(stdev)
-#n0srs <- ceiling((1.96^2*stdev^2)/(MOElog^2))
-#
-#print(paste0('With a sample size only ',round(n0srs/N*100,6), '% of the original population, we ignore fpc.'))
-#
-#print(paste0('Sample Size needed for an estimate of the mean trip duration within 15 seconds, with 95% confidence, is ' , n0srs, '.'))
 
 ```
 
