@@ -118,7 +118,7 @@ rm(pop.data.SRSSampled)
 rm(mydesign)
 ```
 
-Compute Estimate using survey library with n0srs, but use surveyDesign of Stratified Sample
+Compute Estimate using survey library with n<sub>0,srs</sub>, but use surveyDesign of Stratified Sample
 
 
 ```{r}
@@ -268,7 +268,22 @@ paste("n0srs = ", n0srs)
 paste("Neyman Samples Total = ", sum(Neyman.samples))
 ```
 <br>
-As observed above, our sum is just two samples larger than the n<sub>0,srs</sub> value. This is due to rounding error when deriving our whole number sample sizes from our raw, calculated sample sizes. Since our Neyman sample size is larger than the minimum calculated via n<sub>0,srs</sub>, no further action is required. We are ensured our Neyman sample sizes will obtain for us an estimate with no more than 15 seconds MOE (with 95% confidence).
+As observed above, our sum is just two samples larger than the n<sub>0,srs</sub> value. This is due to rounding error when deriving our whole number sample sizes from our raw, calculated sample sizes. Since our Neyman sample size is larger than the minimum calculated via n<sub>0,srs</sub>, no further action would normally be required; we are ensured our Neyman sample sizes will obtain for us an estimate with no more than 15 seconds MOE (with 95% confidence). However, because our intent is to also calculate Design Effect, it would be best to manually adjust our total sample count to match n<sub>0,srs</sub>.
+
+When manually adjusting the sample count, we choose to find the two strata whose calculated sample size has the lowest decimal value over 0.5 and subtract one sample from their rounded sample counts. The two strata that meet this criterian are *Tuesday Evening* and *Sunday Afternoon*. Therefore, we lower their *Neyman.samples* by one.
+
+```{r}
+paste("Sunday Afternoon before change: ", Neyman.samples[4])
+Neyman.samples[4] = Neyman.samples[4] - 1
+paste("Sunday Afternoon after change: ", Neyman.samples[4])
+
+paste("Tuesday Evening before change: ", Neyman.samples[13])
+Neyman.samples[13] = Neyman.samples[13] - 1
+paste("Tuesday Evening after change: ", Neyman.samples[13])
+
+paste("Neyman Samples Total = ", sum(Neyman.samples))
+```
+
 
 ```{r}
 pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, TimeOfDay = pop.data$TimeOfDay, tripduration = pop.data$tripduration)
@@ -380,9 +395,7 @@ for (i in 1:nrow(PropFreq)){
 NeySamp <- merge(pop.data.NeySampled, PropFreq, by = c("TimeOfDay","DayOfWeek"))
 
   # Create SurveyDesign
-mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
-
-#mydesign <- postStratify(design = mydesign, strata = ~DayOfWeek, population = ToDFreq)
+mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp)
 
 NeyMean <- svymean(~tripduration, design = mydesign)
 NeyMean
