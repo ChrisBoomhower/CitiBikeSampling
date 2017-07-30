@@ -261,17 +261,17 @@ rm(mydesign)
 
 ```{r}
   # Identify Frequency of DayOfWeek Stratum
-PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
-names(PropFreq)[1] = 'DayOfWeek'
+NeyFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
+names(NeyFreq)[1] = 'DayOfWeek'
 
 stdDevs <- tapply(pop.data$tripduration, paste(pop.data$TimeOfDay, pop.data$DayOfWeek), sd)
-NhSh <- PropFreq$Freq * stdDevs
+NhSh <- NeyFreq$Freq * stdDevs
 NhSh.ratio <- NhSh/sum(NhSh)
 sampsRaw <- round(n0srs)*NhSh.ratio
 Neyman.samples <- round(sampsRaw)
 
 #cbind(ToDFreq, stdDevs = as.data.frame(as.vector(stdDevs)), as.data.frame(NhSh), as.data.frame(NhSh.ratio), as.data.frame(sampsRaw), as.data.frame(Neyman.samples))
-data.frame(PropFreq,
+data.frame(NeyFreq,
            stdDevs = as.vector(stdDevs),
            NhSh = as.vector(NhSh),
            NhSh.ratio = as.vector(NhSh.ratio),
@@ -306,7 +306,7 @@ paste("Neyman Samples Total = ", sum(Neyman.samples))
 pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, TimeOfDay = pop.data$TimeOfDay, tripduration = pop.data$tripduration)
 pop.data.Neyman$N <- NA
 
-for(i in 1:nrow(PropFreq)){
+for(i in 1:nrow(NeyFreq)){
     pop.data.Neyman$N[paste(pop.data.Neyman$TimeOfDay, pop.data.Neyman$DayOfWeek) ==
                           attributes(Neyman.samples[i])] <- Neyman.samples[i]
 }
@@ -318,7 +318,7 @@ tail(pop.data.Neyman)
 ```{r}
 pop.data.NeySampled <- NULL
 
-for (i in 1:nrow(PropFreq)){
+for (i in 1:nrow(NeyFreq)){
   pop.data.NeySampled<-rbind(pop.data.NeySampled,
                             sample_n(pop.data.Neyman[paste(pop.data.Neyman$TimeOfDay,
                                                            pop.data.Neyman$DayOfWeek) ==
@@ -329,7 +329,7 @@ for (i in 1:nrow(PropFreq)){
 ```
 
 ```{r}
-NeySamp <- merge(pop.data.NeySampled, PropFreq, by = c("TimeOfDay","DayOfWeek"))
+NeySamp <- merge(pop.data.NeySampled, NeyFreq, by = c("TimeOfDay","DayOfWeek"))
 ```
 
 
@@ -367,59 +367,108 @@ Compute Neyman Allocation sample sizes amongst stratum
 Utilize Sample Sizes to compute an Estimate of the mean, using Neyman Design with appropriate sample size
 
 ```{r}
-  # Identify Frequency of DayOfWeek Stratum
-PropFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
-names(PropFreq)[1] = 'DayOfWeek'
-
-stdDevs <- tapply(pop.data$tripduration, paste(pop.data$TimeOfDay, pop.data$DayOfWeek), sd)
-NhSh <- PropFreq$Freq * stdDevs
-NhSh.ratio <- NhSh/sum(NhSh)
-sampsRaw <- round(n0Ney)*NhSh.ratio
-Neyman.samples <- round(sampsRaw)
-
-data.frame(PropFreq,
-           stdDevs = as.vector(stdDevs),
-           NhSh = as.vector(NhSh),
-           NhSh.ratio = as.vector(NhSh.ratio),
-           sampsRaw = as.vector(sampsRaw),
-           Neyman.samples = as.vector(Neyman.samples))
+#NeyFreq <- data.frame(NA)
+sample.Neyman <- function(seed.value){
+    set.seed(seed.value)
+    
+      # Identify Frequency of DayOfWeek Stratum
+    NeyFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
+    names(NeyFreq)[1] = 'DayOfWeek'
+    
+    stdDevs <- tapply(pop.data$tripduration, paste(pop.data$TimeOfDay, pop.data$DayOfWeek), sd)
+    NhSh <- NeyFreq$Freq * stdDevs
+    NhSh.ratio <- NhSh/sum(NhSh)
+    sampsRaw <- round(n0Ney)*NhSh.ratio
+    Neyman.samples <- round(sampsRaw)
+    
+    return(list(data.frame(NeyFreq,
+               stdDevs = as.vector(stdDevs),
+               NhSh = as.vector(NhSh),
+               NhSh.ratio = as.vector(NhSh.ratio),
+               sampsRaw = as.vector(sampsRaw),
+               Neyman.samples = as.vector(Neyman.samples)),
+           NeyFreq, Neyman.samples))
+}
 ```
 
 ```{r}
-pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, TimeOfDay = pop.data$TimeOfDay, tripduration = pop.data$tripduration)
-pop.data.Neyman$N <- NA
-
-for(i in 1:nrow(PropFreq)){
+Neyman.survey <- function(NeymanSamps, seed.value, Freq, Neyman.samples){
+    set.seed(seed.value)
+    
+    pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, TimeOfDay = pop.data$TimeOfDay,
+                                  tripduration = pop.data$tripduration)
+    pop.data.Neyman$N <- NA
+    
+    for(i in 1:nrow(Freq)){
     pop.data.Neyman$N[paste(pop.data.Neyman$TimeOfDay, pop.data.Neyman$DayOfWeek) ==
                           attributes(Neyman.samples[i])] <- Neyman.samples[i]
+    }
+    
+    pop.data.NeySampled <- NULL
+    
+    for (i in 1:nrow(Freq)){
+      pop.data.NeySampled<-rbind(pop.data.NeySampled,
+                                sample_n(pop.data.Neyman[paste(pop.data.Neyman$TimeOfDay,
+                                                               pop.data.Neyman$DayOfWeek) ==
+                                                             attributes(Neyman.samples[i]),],
+                                         Neyman.samples[i]))
+    
+    }
+    
+    # for (i in 1:nrow(Freq)){
+    #   pop.data.NeySampled<-rbind(pop.data.NeySampled,
+    #                             sample_n(pop.data[(pop.data$DayOfWeek == NeymanSamps[i,"DayOfWeek"] 
+    #                                               & pop.data$TimeOfDay ==   NeymanSamps[i,"TimeOfDay"])
+    #                                           ,],
+    #                                      NeymanSamps[i, "Neyman.samples"]))
+    # 
+    # }
+    
+#     for (i in 1:nrow(PropFreq)){
+#   pop.data.PropSampled<-rbind(pop.data.PropSampled,
+#                             sample_n(pop.data[(pop.data$DayOfWeek == PropFreq[i,"DayOfWeek"] 
+#                                                   & pop.data$TimeOfDay ==   PropFreq[i,"TimeOfDay"])
+#                                               ,]
+#                                      ,PropFreq[i,"SampSizehRounded"]
+#                                      )
+#                             )
+#                                 
+# }
+    
+    NeySamp <- merge(pop.data.NeySampled, Freq, by = c("TimeOfDay","DayOfWeek"))
+    
+      # Create SurveyDesign
+    mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp)
+    
+    NeyMean <- svymean(~tripduration, design = mydesign)
+    NeyMean
+    
+    NeyCI <- confint(svymean(~tripduration, design = mydesign))
+    NeyCI
+    
+    #rm(pop.data.Neyman)
+    #rm(mydesign)
+    
+    return(list(NeySamp, NeyMean, NeyCI))
 }
-
-pop.data.NeySampled <- NULL
-
-for (i in 1:nrow(PropFreq)){
-  pop.data.NeySampled<-rbind(pop.data.NeySampled,
-                            sample_n(pop.data.Neyman[paste(pop.data.Neyman$TimeOfDay,
-                                                           pop.data.Neyman$DayOfWeek) ==
-                                                         attributes(Neyman.samples[i]),],
-                                     Neyman.samples[i]))
-
-}
-
-NeySamp <- merge(pop.data.NeySampled, PropFreq, by = c("TimeOfDay","DayOfWeek"))
-
-  # Create SurveyDesign
-mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp)
-
-NeyMean <- svymean(~tripduration, design = mydesign)
-NeyMean
-
-NeyCI <- confint(svymean(~tripduration, design = mydesign))
-NeyCI
-
-rm(pop.data.Neyman)
-rm(mydesign)
 ```
 
+```{r}
+output <- sample.Neyman(n0srs)
+NeymanSamps <- output[[1]]
+NeyFreq <- output[[2]]
+Neyman.samples <- output[[3]]
+
+rm(output)
+```
+
+```{r}
+Neyman.survey(NeymanSamps, n0srs, NeyFreq, Neyman.samples)
+```
+
+
+### Task 2 - Compare Confidence Intervals against 5 samples
+#### Stratified Sampling (Proportional Allocation)
 ```{r}
 
 testNum <- ceiling(5/1000*N)
