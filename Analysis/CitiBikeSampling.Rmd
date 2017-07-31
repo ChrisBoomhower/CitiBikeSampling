@@ -236,7 +236,7 @@ print(paste('The Standard Error =', propMean[[2]]))
 
 
 #### Neyman Sampling Design
-
+As our second sampling method, we choose to implement Neyman Allocation in order to account for *tripduration* variance by stratum. As was performed during Proportional Allocation, the strata sample sizes are computed such that the total number of samples equals our n<sub>0,srs</sub> calculated previously. The primary difference between our Proportional Allocation sampling calculations and Neyman Allocation computations is that our weight is derived from the product of stratum size and stratum standard deviation ($\frac{Nh \times Sh}{Total \space NhSh}$. Neyman sample count derivation steps are portrayed in the table output below.
 ```{r}
   # Identify Frequency of DayOfWeek Stratum
 NeyFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
@@ -248,7 +248,6 @@ NhSh.ratio <- NhSh/sum(NhSh)
 sampsRaw <- round(n0srs)*NhSh.ratio
 Neyman.samples <- round(sampsRaw)
 
-#cbind(ToDFreq, stdDevs = as.data.frame(as.vector(stdDevs)), as.data.frame(NhSh), as.data.frame(NhSh.ratio), as.data.frame(sampsRaw), as.data.frame(Neyman.samples))
 data.frame(NeyFreq,
            stdDevs = as.vector(stdDevs),
            NhSh = as.vector(NhSh),
@@ -257,15 +256,13 @@ data.frame(NeyFreq,
            Neyman.samples = as.vector(Neyman.samples))
 ```
 <br>
-By rounding the calculated strata sample counts in our table output above, we now have definitive Neyman sample sizes for each stratum. To help validate these numbers' derivation, we choose to calculate their sum - their sum should calculate to our n<sub>0,srs</sub> value.
+By rounding the calculated strata sample counts in our table output above, we now have definitive Neyman sample sizes for each stratum. To help validate these numbers' derivation, we compare their sum value against our previously calculated n<sub>0,srs</sub> value. The expectation is that their values should match since we multiplied strata weights by this value $(n_{0,srs} = 33472)$. However, our sum is just two samples larger than the n<sub>0,srs</sub> value. This is due to rounding error when deriving our whole number sample sizes from our raw, calculated sample sizes. Since our Neyman sample size is larger than the minimum calculated via n<sub>0,srs</sub>, no further action would normally be required; we are ensured our Neyman sample sizes will obtain for us an estimate with no more than 15 seconds margin of error (with 95% confidence). However, because our intent is to also calculate Design Effect, we choose to manually adjust our total sample count to match n<sub>0,srs</sub>.
 ```{r}
 paste("n0srs = ", n0srs)
 paste("Neyman Samples Total = ", sum(Neyman.samples))
 ```
 <br>
-As observed above, our sum is just two samples larger than the n<sub>0,srs</sub> value. This is due to rounding error when deriving our whole number sample sizes from our raw, calculated sample sizes. Since our Neyman sample size is larger than the minimum calculated via n<sub>0,srs</sub>, no further action would normally be required; we are ensured our Neyman sample sizes will obtain for us an estimate with no more than 15 seconds MOE (with 95% confidence). However, because our intent is to also calculate Design Effect, it would be best to manually adjust our total sample count to match n<sub>0,srs</sub>.
-
-When manually adjusting the sample count, we choose to find the two strata whose calculated sample size has the lowest decimal value over 0.5 and subtract one sample from their rounded sample counts. The two strata that meet this criterian are *Tuesday Evening* and *Sunday Afternoon*. Therefore, we lower their *Neyman.samples* by one.
+When manually adjusting the sample count, we choose to find the two strata whose calculated sample size has the lowest decimal value over 0.5 and subtract one sample from their rounded sample counts. The two strata that meet this criterian are *Tuesday Evening* and *Sunday Afternoon* with values of 1929.5488 and 1100.5407 respectively. Therefore, we lower their rounded *Neyman.samples* by one to 1929 and 1100.
 
 ```{r}
 paste("Sunday Afternoon before change: ", Neyman.samples[4])
@@ -278,7 +275,8 @@ paste("Tuesday Evening after change: ", Neyman.samples[13])
 
 paste("Neyman Samples Total = ", sum(Neyman.samples))
 ```
-
+<br>
+*In preparation for utilizing R's svydesign() library function, we next append these stratum sample counts to our dataset.*
 
 ```{r}
 pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, TimeOfDay = pop.data$TimeOfDay, tripduration = pop.data$tripduration)
@@ -292,7 +290,8 @@ for(i in 1:nrow(NeyFreq)){
 head(pop.data.Neyman)
 tail(pop.data.Neyman)
 ```
-
+<br>
+Our next task is to sample each stratum per our derived Neyman sample counts. We implement simple random sampling within each stratum, without replacement, to accomplish this. After doing so, we merge our original population stratum size counts with our sample data for later comparison using R's *survey* library *svydesign()* function for mean estimation and standard error calculation.
 ```{r}
 set.seed(n0srs)
 pop.data.NeySampled <- NULL
@@ -322,7 +321,7 @@ NeyMean <- svymean(~tripduration, design = mydesign)
 NeyMean
 ```
 
-$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{7.7424}{8.2137}=0.9426$
+$deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.4397}{8.2137}=1.0275$
 
 ```{r}
 
@@ -332,7 +331,7 @@ deffNey
 ```
 
 Compute appropriate Sample Size for Neyman Design Effect Modification (see 5.6 slides)
-$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33474 \times 0.9426 = 31551.39 \approx 31552$
+$n_{0,complex} = n_{0,srs} \times deff_{complex}= 33472 \times 1.0275 = 34393.13 \approx 34394$
 
 ```{r}
 n0Ney = n0srs*deffNey
@@ -370,7 +369,7 @@ sample.Neyman <- function(seed.value){
 ```
 
 ```{r}
-Neyman.survey <- function(NeymanSamps, seed.value, Freq, Neyman.samples){
+Neyman.survey <- function(seed.value, Freq, Neyman.samples){
     set.seed(seed.value)
     
     pop.data.Neyman <- data.frame(DayOfWeek = pop.data$DayOfWeek, TimeOfDay = pop.data$TimeOfDay,
@@ -399,15 +398,15 @@ Neyman.survey <- function(NeymanSamps, seed.value, Freq, Neyman.samples){
     mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp)
     
     NeyMean <- svymean(~tripduration, design = mydesign)
-    NeyMean
+    
+    NeySE = SE(NeyMean)
     
     NeyCI <- confint(svymean(~tripduration, design = mydesign))
-    NeyCI
     
-    #rm(pop.data.Neyman)
-    #rm(mydesign)
-    
-    return(list(NeySamp, NeyMean, NeyCI))
+    return(list(as.numeric(NeyMean[1]),
+                as.numeric(NeySE),
+                as.numeric(NeyCI[1]),
+                as.numeric(NeyCI[2])))
 }
 ```
 
@@ -421,7 +420,10 @@ rm(output)
 ```
 
 ```{r}
-Neyman.survey(NeymanSamps, n0srs, NeyFreq, Neyman.samples)
+NeyMean <- Neyman.survey(n0srs, NeyFreq, Neyman.samples)
+
+print(paste('The Mean Estimate =', NeyMean[[1]]))
+print(paste('The Standard Error =', NeyMean[[2]]))
 ```
 
 
@@ -454,15 +456,15 @@ for (seed in SeedList){
 }
 
 
-#  #Ney Seed Executions
-#for (seed in SeedList){
-#  NeyEstimate <- ####INSERT FUNCTION CALL HERE 
-#  NeyEstimate <- data.frame('Ney', seed, NeyEstimate)
-#  names(NeyEstimate) <- c("EstimateType","SeedValue", "MeanEstimate", "SE", "LCI", "UCI")
-#  df<- rbind(df,
-#             NeyEstimate
-#            )
-#}
+ #Ney Seed Executions
+for (seed in SeedList){
+ NeyEstimate <- Neyman.survey(seed, NeyFreq, Neyman.samples)
+ NeyEstimate <- data.frame('Ney', seed, NeyEstimate)
+ names(NeyEstimate) <- c("EstimateType","SeedValue", "MeanEstimate", "SE", "LCI", "UCI")
+ df<- rbind(df,
+            NeyEstimate
+           )
+}
 
   #Add True Mean Value, in-line with estimates
 df$TrueMeanValue <- trueMean
