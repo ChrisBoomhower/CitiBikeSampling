@@ -4,7 +4,14 @@ output:
   html_notebook: default
 ---
 
-### Load the data
+#### Introduction
+As interests in data science continue to accelerate, more and more organizations are joining the open data movement, releasing datasets to the open public. However, this may not always be the case and manual effort may be required to obtain the data by outsiders. In other instances, data may be made available but its shear volume may make it difficult for some individuals to gather the insights necessary given their computational resources available.
+
+With these challenges in mind, we chose to assess survey sampling estimation methods while estimating mean CitiBike trip durations in NYC. The data utilized consists of [Citi Bike trip history data](https://www.citibikenyc.com/system-data) collected and released by NYC Bike Share, LLC and Jersey Bike Share, LLC under [Citi Bike's NYCBS Data Use Policy](https://www.citibikenyc.com/data-sharing-policy). Citi Bike is America's largest bike share program, with 10,000 bikes and 600 stations across Manhattan, Brooklyn, Queens, and Jersey City... 55 neighborhoods in all. As such, our data set's trip history includes all rental transactions conducted within the NYC Citi Bike system from July 1st, 2013 to February 28th, 2014. These transactions amount to 5,562,293 trips within this time frame.
+
+For this particular dataset, the data is made available. However, since this may not always be the case, it represents a valid test case for applying various survey methods to estimate a population parameter. In our case, we first use Simple Random Sampling (SRS), Proportional Allocation, and Neyman Allocation to estimate trip duration mean, calculate the Design Effect (deff) for each complex method, obtain the new sample counts per the deff, and then proceed to compare each method's performance. After this, we transact 5 iterations of each of these sampling methodologies to derive confidence intervals for our estimation and compare these to the population true mean. 
+
+#### Outlier Removal
 
 Load necessary libraries
 
@@ -236,7 +243,7 @@ print(paste('The Standard Error =', propMean[[2]]))
 
 
 #### Neyman Sampling Design
-As our second sampling method, we choose to implement Neyman Allocation in order to account for *tripduration* variance by stratum. As was performed during Proportional Allocation, the strata sample sizes are computed such that the total number of samples equals our n<sub>0,srs</sub> calculated previously. The primary difference between our Proportional Allocation sampling calculations and Neyman Allocation computations is that our weight is derived from the product of stratum size and stratum standard deviation ($\frac{Nh \times Sh}{Total \space NhSh}$. Neyman sample count derivation steps are portrayed in the table output below.
+As our second sampling method, we choose to implement Neyman Allocation in order to account for *tripduration* variance by stratum. As was performed during Proportional Allocation, the strata sample sizes are computed such that the total number of samples equals our n<sub>0,srs</sub> calculated previously. The primary difference between our Proportional Allocation sampling calculations and Neyman Allocation computations is that our weight is derived from the product of stratum size and stratum standard deviation ($\frac{Nh \times Sh}{Total \space NhSh}$). Neyman sample count derivation steps are portrayed in the table output below.
 ```{r}
   # Identify Frequency of DayOfWeek Stratum
 NeyFreq <- as.data.frame(table(pop.data[,c("DayOfWeek", "TimeOfDay")]))
@@ -291,7 +298,7 @@ head(pop.data.Neyman)
 tail(pop.data.Neyman)
 ```
 <br>
-Our next task is to sample each stratum per our derived Neyman sample counts. We implement simple random sampling within each stratum, without replacement, to accomplish this. After doing so, we merge our original population stratum size counts with our sample data for later comparison using R's *survey* library *svydesign()* function for mean estimation and standard error calculation.
+Our next task is to sample each stratum per our derived Neyman sample counts. We implement simple random sampling within each stratum, without replacement, to accomplish this. After doing so, we merge our original population stratum size counts with our sample data for comparison using R's *survey* library *svydesign()* function for mean estimation and standard error calculation.
 ```{r}
 set.seed(n0srs)
 pop.data.NeySampled <- NULL
@@ -310,7 +317,7 @@ for (i in 1:nrow(NeyFreq)){
 NeySamp <- merge(pop.data.NeySampled, NeyFreq, by = c("TimeOfDay","DayOfWeek"))
 ```
 
-
+With our Neyman sample set complete and population strata sizes merged, we are ready to apply R's *svydesign()* procedure for trip duration mean estimation. Running the function on our data produces a trip duration mean estimation of 870.75 seconds with 8.4397 seconds standard error. Again, our true population mean is 860.978 seconds, resulting in a delta of 9.772 seconds.
 ```{r}
   # Create SurveyDesign
 mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeySamp) # Dropped since no correction needed: , fpc = ~Freq)
@@ -320,6 +327,7 @@ mydesign <- svydesign(id = ~1, strata = ~paste(DayOfWeek,TimeOfDay), data = NeyS
 NeyMean <- svymean(~tripduration, design = mydesign)
 NeyMean
 ```
+As was performed for Proportional Allocation, we consider it important to calculate the Neyman Allocation Design Effect to acquire the correct total sample size necessary to produce results like SRS. Calculating Design Effect using SRS and Neyman Allocation SE values as follows results in a deff value of 1.0275.
 
 $deff_{complex}=\frac{V(\bar{y}_{complex})}{V( \bar{y} {srs)})}=\frac{8.4397}{8.2137}=1.0275$
 
@@ -330,7 +338,8 @@ deffNey
 
 ```
 
-Compute appropriate Sample Size for Neyman Design Effect Modification (see 5.6 slides)
+Being that the deff value of 1.0275 is approximately 1.0 (only 2.8% larger), it is apparent that Neyman Allocation actually produces an estimate which is approximately the same as SRS and only slightly less precise (deff value may change slightly with each new random sample set but hovers around 1.0). Since the number reported leads us to believe a sample size 2.8% larger than n<sub>0,srs</sub> may be required for Neyman to obtain the same precision, we multiply n<sub>0,srs</sub> by 1.0275 to obtain our new total sample size.
+
 $n_{0,complex} = n_{0,srs} \times deff_{complex}= 33472 \times 1.0275 = 34393.13 \approx 34394$
 
 ```{r}
@@ -340,9 +349,8 @@ n0Ney = ceiling(n0Ney)
 n0Ney
 
 ```
-
-Compute Neyman Allocation sample sizes amongst stratum
-Utilize Sample Sizes to compute an Estimate of the mean, using Neyman Design with appropriate sample size
+<br>
+With our new Neyman sample total defined, we proceed to compute our Neyman Allocation sample sizes amongst strata. This is performed as was done before Design Effect was calculated. The new strata sample size derivations are shown below.
 
 ```{r}
 sample.Neyman <- function(seed.value){
@@ -416,9 +424,25 @@ NeymanSamps <- output[[1]]
 NeyFreq <- output[[2]]
 Neyman.samples <- output[[3]]
 
+NeymanSamps
+
 rm(output)
 ```
 
+When again checking our *Neyman.samples* total against the Post-deff sample size calculated, we find that rounding error has again affected our total, this time resulting in a total one sample short (34393 instead of 34394). We identify the *Thursday Midday* stratum for rounding up since it contains the largest decimal value less than 0.5 (raw, calculated sample size is 798.4939). Its stratum sample size is manually updated to 799.
+
+```{r}
+paste("n0Ney = ", n0Ney)
+paste("Post-Deff Neyman Samples Total = ", sum(Neyman.samples))
+```
+
+```{r}
+paste("Thursday Midday before change: ", Neyman.samples[19])
+Neyman.samples[19] = Neyman.samples[19] + 1
+paste("Thursday Midday after change: ", Neyman.samples[19])
+```
+<br>
+Finally, with new Neyman Allocation strata sample sizes calculated, we sample each stratum per its respective sample count and estimate the mean as was done previously. Doing so produces an estimate of 858.362 seconds with a standard error of 7.193.
 ```{r}
 NeyMean <- Neyman.survey(n0srs, NeyFreq, Neyman.samples)
 
